@@ -2,19 +2,19 @@ package repository
 
 import (
 	"bytes"
+	"fmt"
 	go_ini "github.com/vaughan0/go-ini"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
-	"fmt"
 	"strings"
 )
 
 type Repository struct {
-	index int // order in which repository was found
-	Name string // assumed name of the repo
+	index int    // order in which repository was found
+	Name  string // assumed name of the repo
 
 	path    string // root work directory
 	gitRoot string // actual git location
@@ -138,7 +138,7 @@ func (repository *Repository) IsBranch(branch string) bool {
 	return false
 }
 
-// IsRemote return true if remote is a remote.
+// IsRemote returns true if remote is a remote.
 func (repository *Repository) IsRemote(remote string) bool {
 	for _, r := range repository.remotes {
 		if r == remote {
@@ -163,4 +163,12 @@ func (repository *Repository) GetStatusJudgement() string {
 	}
 
 	return "Error"
+}
+
+// PathMatch returns true if path matches.
+func (repository *Repository) PathMatch(match string) bool {
+	if strings.Index(repository.path, match) >= 0 {
+		return true
+	}
+	return false
 }

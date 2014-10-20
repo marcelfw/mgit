@@ -1,13 +1,16 @@
-package cmd_status
+package cmd_pwd
 
 import (
 	"github.com/marcelfw/mgit/repository"
 	"strings"
 )
 
-const name string = "status"
+const name string = "pwd"
 
 type cmdStatus struct {
+	match string
+
+	repository repository.Repository
 }
 
 func NewCommand() cmdStatus {
@@ -17,19 +20,21 @@ func NewCommand() cmdStatus {
 }
 
 func (cmd cmdStatus) Usage(name_len int) string {
-	return name + strings.Repeat(" ", name_len-len(name)) + " Return the status of each repository"
+	return name + strings.Repeat(" ", name_len-len(name)) + " Return the last matching directory."
 }
 
 func (cmd cmdStatus) Help() string {
-	return "Returns really short status for repository."
+	return "Returns repository directory."
 }
 
 func (cmd cmdStatus) Init(args []string) {
-	// we don't do anything
+	cmd.match = args[0]
 }
 
 func (cmd cmdStatus) Run(repository repository.Repository) repository.Repository {
-	// we require what we already have
+	if repository.PathMatch(cmd.match) {
+		cmd.repository = repository
+	}
 	return repository
 }
 
@@ -42,9 +47,9 @@ func (cmd cmdStatus) OutputHeader() []string {
 func (cmd cmdStatus) Output(repository repository.Repository) []string {
 	columns := make([]string, 3, 3)
 
-	columns[0] = repository.Name
-	columns[1] = repository.GetCurrentBranch()
-	columns[2] = repository.GetStatusJudgement()
+	columns[0] = cmd.repository.Name
+	columns[1] = cmd.repository.GetCurrentBranch()
+	columns[2] = cmd.repository.GetStatusJudgement()
 
 	return columns
 }

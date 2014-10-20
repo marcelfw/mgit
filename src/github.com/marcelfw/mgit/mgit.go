@@ -1,24 +1,29 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
-	"github.com/marcelfw/mgit/repository"
 	"github.com/marcelfw/mgit/cmd_status"
+	"github.com/marcelfw/mgit/cmd_pwd"
+	"github.com/marcelfw/mgit/repository"
 	go_ini "github.com/vaughan0/go-ini"
 	"os"
 	"os/user"
 	"path"
 	"path/filepath"
-	"strings"
-	"sync"
 	"regexp"
 	"sort"
+	"strings"
+	"sync"
+	"time"
 )
 
+// number of parallel processors.
 const numDigesters = 5
 
-type RepositoryFilter struct {
+// repositoryFilter defines a filter for repositories.
+type repositoryFilter struct {
 	rootDirectory string
 
 	branch string
@@ -33,11 +38,13 @@ type command interface {
 	Init(args []string)
 
 	Run(repository.Repository) repository.Repository
-	Output(repository.Repository) string
+
+	OutputHeader() []string
+	Output(repository.Repository) []string
 }
 
 // analysePath extracts repositories from regular file paths.
-func analysePath(filter RepositoryFilter, reposChannel chan repository.Repository) filepath.WalkFunc {
+func analysePath(filter repositoryFilter, reposChannel chan repository.Repository) filepath.WalkFunc {
 	no_of_repositories := 0
 
 	return func(vpath string, f os.FileInfo, err error) error {
@@ -56,7 +63,7 @@ func analysePath(filter RepositoryFilter, reposChannel chan repository.Repositor
 
 				if found {
 					no_of_repositories++
-					fmt.Printf("\rRepositories #%d.", no_of_repositories)
+					fmt.Printf("\r%c %d", "/-\\|"[time.Now().Second() % 4], no_of_repositories)
 					reposChannel <- repository
 				}
 			}
@@ -66,7 +73,7 @@ func analysePath(filter RepositoryFilter, reposChannel chan repository.Repositor
 }
 
 // findRepositories finds and filters repositories below the rootDirectory.
-func findRepositories(filter RepositoryFilter) chan repository.Repository {
+func findRepositories(filter repositoryFilter) chan repository.Repository {
 	reposChannel := make(chan repository.Repository, numDigesters)
 
 	go func() {
@@ -85,8 +92,10 @@ func goRepositories(inChannel chan repository.Repository, outChannel chan reposi
 	for i := 0; i < numDigesters; i++ {
 		go func() {
 			for repository := range inChannel {
+				// Always require this information.
+				repository.RetrieveBasics()
+
 				outChannel <- command.Run(repository)
-				//time.Sleep(500 * time.Millisecond)
 			}
 			wg.Done()
 		}()
@@ -117,7 +126,7 @@ Commands are:
 
 // readShortcutFromConfiguration reads the configuration and return the filter for the shortcut.
 // return bool false if something went wrong.
-func readShortcutFromConfiguration(shortcut string, filter RepositoryFilter) (RepositoryFilter, bool) {
+func readShortcutFromConfiguration(shortcut string, filter repositoryFilter) (repositoryFilter, bool) {
 	user, err := user.Current()
 	if err != nil {
 		fmt.Fprint(os.Stderr, "Cannot determine home directory!")
@@ -127,29 +136,29 @@ func readShortcutFromConfiguration(shortcut string, filter RepositoryFilter) (Re
 	filename := user.HomeDir + "/.mgit"
 	if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
 		config, err := go_ini.LoadFile(filename)
-		if err == nil {
-			r, _ := regexp.Compile("shortcut \"(.+)\"")
-			for name, vars := range config {
-				match := r.FindStringSubmatch(name)
-				if len(match) >= 2 && match[1] == shortcut {
-					for key, value := range vars {
-						lkey := strings.ToLower(key)
-						switch {
-						case lkey == "rootdirectory":
-							filter.rootDirectory = value
-						case lkey == "remote":
-							filter.remote = value
-						case lkey == "branch":
-							filter.branch = value
-						}
-					}
-
-					return filter, true
-				}
-			}
-		} else {
+		if err != nil {
 			fmt.Fprint(os.Stderr, "Cannot read configuration file, incorrect format!\n")
 			return filter, false
+		}
+
+		r, _ := regexp.Compile("shortcut \"(.+)\"")
+		for name, vars := range config {
+			match := r.FindStringSubmatch(name)
+			if len(match) >= 2 && match[1] == shortcut {
+				for key, value := range vars {
+					lkey := strings.ToLower(key)
+					switch {
+					case lkey == "rootdirectory":
+						filter.rootDirectory = value
+					case lkey == "remote":
+						filter.remote = value
+					case lkey == "branch":
+						filter.branch = value
+					}
+				}
+
+				return filter, true
+			}
 		}
 	} else {
 		fmt.Fprintf(os.Stderr, "Cannot find configuration file, looked for %s! (%v %v)\n", filename, fi, err)
@@ -165,21 +174,22 @@ func getCommands() (commands map[string]command) {
 	commands = make(map[string]command)
 
 	commands["status"] = cmd_status.NewCommand()
+	commands["pwd"] = cmd_pwd.NewCommand()
 
 	return
 }
 
 // parseCommandline parses and validates the command-line and returns useful structs to continue.
-func parseCommandline() (command string, args []string, filter RepositoryFilter, ok bool) {
+func parseCommandline() (command string, args []string, filter repositoryFilter, ok bool) {
 	var rootDirectory string
 	var remote string
 	var branch string
 	var shortcut string
 
-	filter = RepositoryFilter{rootDirectory: "."}
+	filter = repositoryFilter{rootDirectory: "."}
 	flag.StringVar(&rootDirectory, "root", "", "set root directory")
-	flag.StringVar(&remote, "r", "", "set remote to filter or work on")
-	flag.StringVar(&branch, "b", "", "set branch to filter or work on")
+	flag.StringVar(&remote, "r", "", "set remote to filter")
+	flag.StringVar(&branch, "b", "", "set branch to filter")
 	flag.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
 	flag.Parse()
 
@@ -211,24 +221,60 @@ func parseCommandline() (command string, args []string, filter RepositoryFilter,
 	return command, args, filter, true
 }
 
-func main() {
-	commands := getCommands()
+// Output an text string table.
+func outputTextTable(header []string, rows [][]string) string {
+	var buffer bytes.Buffer
 
-	text_command, args, filter, ok := parseCommandline()
-	if ok == false {
-		Usage(commands)
-		return
+	// Storage for column widths and line.
+	var column_width []int = make([]int, len(header))
+	var line_columns []string = make([]string, len(header))
+
+	// Init column width header columns.
+	for idx, column := range header {
+		column_width[idx] = len(column)
 	}
 
-	var command command
-	if command, ok = commands[text_command]; ok == false {
-		Usage(commands)
-		return
+	// Determine column widths.
+	for _, row := range rows {
+		for idx, column := range row {
+			if len(column) > column_width[idx] {
+				column_width[idx] = len(column)
+			}
+		}
 	}
 
-	// Let the command initialize itself with the arguments.
-	command.Init(args)
+	// Fill line columns.
+	for idx, _ := range header {
+		line_columns[idx] = strings.Repeat("-", column_width[idx])
+	}
 
+	// Inserts header and lines into rows.
+	rows = append(rows, header, header)
+	copy(rows[2:], rows[0:len(rows)-1])
+	rows[0] = header
+	rows[1] = line_columns
+
+	// Write actual columns.
+	for _, row := range rows {
+		for idx, column := range row {
+			if idx > 0 {
+				buffer.WriteByte(32)
+			}
+
+			buffer.WriteString(column)
+			if len(column) < column_width[idx] {
+				buffer.WriteString(strings.Repeat(" ", column_width[idx]-len(column)))
+			}
+		}
+
+		buffer.WriteString("\n")
+	}
+
+	return buffer.String()
+}
+
+// Run the actual command with the filter.
+func runCommand(command command, filter repositoryFilter) {
 	// Find repositories which match filter and put on inchannel.
 	inChannel := findRepositories(filter)
 
@@ -248,13 +294,39 @@ func main() {
 	// Sort repositories for logical output.
 	sort.Sort(repository.ByIndex(repositories))
 
-	// Present final count.
-	fmt.Printf("\rFound %d repositories.\n", len(repositories))
+	// Clear counter.
+	fmt.Printf("\r        \r")
 
-	// Output results.
-	for _, repository := range repositories {
-		fmt.Println(command.Output(repository))
-		//fmt.Printf("Repository[%s] branch=%s, status=%s\n", repository.Name, repository.GetCurrentBranch(), repository.GetStatusJudgement())
-		//fmt.Printf("%-"+strconv.FormatInt(int64(name_len_max), 10)+"s %-10s  %-10s\n", repository.Name, repository.GetCurrentBranch(), repository.GetStatusJudgement())
+	// Simplify repository output to rows.
+	rows := make([][]string, len(repositories), len(repositories))
+	for row_idx, repository := range repositories {
+		output := command.Output(repository)
+
+		rows[row_idx] = output
 	}
+
+	// Output nicely.
+	fmt.Print(outputTextTable(command.OutputHeader(), rows))
+}
+
+func main() {
+	commands := getCommands()
+
+	text_command, args, filter, ok := parseCommandline()
+	if ok == false {
+		Usage(commands)
+		return
+	}
+
+	var command command
+	if command, ok = commands[text_command]; ok == false {
+		Usage(commands)
+		return
+	}
+
+	// Let the command initialize itself with the arguments.
+	command.Init(args)
+
+	// Run the actual command.
+	runCommand(command, filter)
 }
