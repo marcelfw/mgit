@@ -1,3 +1,9 @@
+// Copyright 2014 Marcel Wouters. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package repository implements detection, filtering and structure of repositories.
+// This source structures a single repository for processing by others.
 package repository
 
 import (
@@ -114,6 +120,14 @@ func (repository Repository) execGit(args ...string) (result string, ok bool) {
 	return "", false
 }
 
+// PathMatch returns true if path matches.
+func (repository *Repository) PathMatch(match string) bool {
+	if strings.Index(repository.path, match) >= 0 {
+		return true
+	}
+	return false
+}
+
 // retrieveBasics retrieves the current branch, status.
 func (repository *Repository) RetrieveBasics() {
 	if branch, ok := repository.execGit("rev-parse", "--abbrev-ref", "HEAD"); ok {
@@ -148,6 +162,11 @@ func (repository *Repository) IsRemote(remote string) bool {
 	return false
 }
 
+// GetPath returns root directory.
+func (repository *Repository) GetPath() string {
+	return repository.path
+}
+
 // GetCurrentBranch returns the current branch.
 func (repository *Repository) GetCurrentBranch() string {
 	return repository.currentBranch
@@ -163,12 +182,4 @@ func (repository *Repository) GetStatusJudgement() string {
 	}
 
 	return "Error"
-}
-
-// PathMatch returns true if path matches.
-func (repository *Repository) PathMatch(match string) bool {
-	if strings.Index(repository.path, match) >= 0 {
-		return true
-	}
-	return false
 }

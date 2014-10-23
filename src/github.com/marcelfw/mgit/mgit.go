@@ -1,3 +1,8 @@
+// Copyright 2014 Marcel Wouters. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package main glues everything together :-)
 package main
 
 import (
@@ -14,37 +19,17 @@ import (
 // number of parallel processors.
 const numDigesters = 5
 
-
 // command is the interface used for each command.
 type command interface {
 	Usage(int) string
 	Help() string
 
-	Init(args []string)
+	Init(args []string) interface{}
 
-	Run(repository.Repository) repository.Repository
+	Run(repository.Repository) (repository.Repository, bool)
 
 	OutputHeader() []string
 	Output(repository.Repository) []string
-}
-
-
-// goRepositories concurrently performs some actions on each repository.
-func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command command) {
-	var wg sync.WaitGroup
-	wg.Add(numDigesters)
-	for i := 0; i < numDigesters; i++ {
-		go func() {
-			for repository := range inChannel {
-				// Always require this information.
-				repository.RetrieveBasics()
-
-				outChannel <- command.Run(repository)
-			}
-			wg.Done()
-		}()
-	}
-	wg.Wait()
 }
 
 // Usage returns the usage for the program.
@@ -68,33 +53,60 @@ Commands are:
 	}
 }
 
-
 // getCommands fetches all commands available for this run.
 func getCommands() (cmds map[string]command) {
 	cmds = make(map[string]command)
 
 	cmds["status"] = commands.NewStatusCommand()
-	cmds["pwd"] = commands.NewPwdCommand()
+	cmds["path"] = commands.NewPathCommand()
 
 	return
 }
 
+// goRepositories concurrently performs some actions on each repository.
+func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command command) {
+	var wg sync.WaitGroup
+	wg.Add(numDigesters)
+	for i := 0; i < numDigesters; i++ {
+		go func() {
+			for repository := range inChannel {
+				// Always require this information.
+				repository.RetrieveBasics()
+
+				if outRepository, output := command.Run(repository); output == true {
+					outChannel <- outRepository
+				}
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
 
 // Output an text string table.
 func outputTextTable(header []string, rows [][]string) string {
 	var buffer bytes.Buffer
 
 	// Storage for column widths and line.
-	var column_width []int = make([]int, len(header))
-	var line_columns []string = make([]string, len(header))
+	var column_width []int
+	var line_columns []string
 
 	// Init column width header columns.
-	for idx, column := range header {
-		column_width[idx] = len(column)
+	if header != nil {
+		column_width = make([]int, len(header))
+		line_columns = make([]string, len(header))
+
+		for idx, column := range header {
+			column_width[idx] = len(column)
+		}
 	}
 
 	// Determine column widths.
 	for _, row := range rows {
+		if len(column_width) == 0 {
+			column_width = make([]int, len(row))
+			line_columns = make([]string, len(row))
+		}
 		for idx, column := range row {
 			if len(column) > column_width[idx] {
 				column_width[idx] = len(column)
@@ -102,16 +114,18 @@ func outputTextTable(header []string, rows [][]string) string {
 		}
 	}
 
-	// Fill line columns.
-	for idx, _ := range header {
-		line_columns[idx] = strings.Repeat("-", column_width[idx])
-	}
+	if header != nil {
+		// Fill line columns.
+		for idx, _ := range header {
+			line_columns[idx] = strings.Repeat("-", column_width[idx])
+		}
 
-	// Inserts header and lines into rows.
-	rows = append(rows, header, header)
-	copy(rows[2:], rows[0:len(rows)-1])
-	rows[0] = header
-	rows[1] = line_columns
+		// Inserts header and lines into rows.
+		rows = append(rows, header, header)
+		copy(rows[2:], rows[0:len(rows)-1])
+		rows[0] = header
+		rows[1] = line_columns
+	}
 
 	// Write actual columns.
 	for _, row := range rows {
@@ -153,9 +167,6 @@ func runCommand(command command, filter repository.RepositoryFilter) {
 	// Sort repositories for logical output.
 	sort.Sort(repository.ByIndex(repositories))
 
-	// Clear counter.
-	fmt.Printf("\r        \r")
-
 	// Simplify repository output to rows.
 	rows := make([][]string, len(repositories), len(repositories))
 	for row_idx, repository := range repositories {
@@ -177,15 +188,18 @@ func main() {
 		return
 	}
 
-	var command command
-	if command, ok = commands[text_command]; ok == false {
+	var curCommand command
+	if curCommand, ok = commands[text_command]; ok == false {
 		Usage(commands)
 		return
 	}
 
 	// Let the command initialize itself with the arguments.
-	command.Init(args)
+	initResult := curCommand.Init(args)
+	if newCommand, ok := initResult.(command); ok == true {
+		curCommand = newCommand
+	}
 
 	// Run the actual command.
-	runCommand(command, filter)
+	runCommand(curCommand, filter)
 }

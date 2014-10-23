@@ -1,3 +1,9 @@
+// Copyright 2014 Marcel Wouters. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package commands implements all internal commands.
+// This source returns the status of all repositories.
 package commands
 
 import (
@@ -24,17 +30,19 @@ func (cmd cmdStatus) Help() string {
 	return "Returns really short status for repository."
 }
 
-func (cmd cmdStatus) Init(args []string) {
+func (cmd cmdStatus) Init(args []string) (outCmd interface{}) {
 	// we don't do anything
+	return nil
+
 }
 
-func (cmd cmdStatus) Run(repository repository.Repository) repository.Repository {
+func (cmd cmdStatus) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
 	// we require what we already have
-	return repository
+	return repository, true
 }
 
 func (cmd cmdStatus) OutputHeader() []string {
-	return []string {
+	return []string{
 		"Name", "Branch", "Status",
 	}
 }

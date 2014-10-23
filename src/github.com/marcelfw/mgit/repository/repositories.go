@@ -1,25 +1,28 @@
+// Copyright 2014 Marcel Wouters. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package repository implements detection, filtering and structure of repositories.
+// This source detects and filters repositories.
 package repository
 
 import (
 	"os"
-	"fmt"
-	"strings"
-	"path/filepath"
 	"path"
-	"time"
+	"path/filepath"
+	"strings"
 )
-
 
 // RepositoryFilter defines a filter for repositories.
 type RepositoryFilter struct {
 	rootDirectory string
-	depth int
+	depth         int
 
-	branch string
-	remote string
+	branch   string
+	nobranch bool
+	remote   string
+	noremote bool
 }
-
-
 
 // analysePath extracts repositories from regular file paths.
 func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath.WalkFunc {
@@ -37,15 +40,16 @@ func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath
 			if repository, ok := NewRepository(no_of_repositories, name, vpath); ok {
 				var found = true
 				if found == true && filter.branch != "" {
-					found = repository.IsBranch(filter.branch)
+					is_branch := repository.IsBranch(filter.branch)
+					found = (!filter.nobranch && is_branch) || (filter.nobranch && !is_branch)
 				}
 				if found == true && filter.remote != "" {
-					found = repository.IsRemote(filter.remote)
+					is_remote := repository.IsRemote(filter.remote)
+					found = (!filter.noremote && is_remote) || (filter.noremote && !is_remote)
 				}
 
 				if found {
 					no_of_repositories++
-					fmt.Printf("\r%c %d", "/-\\|"[time.Now().Second() % 4], no_of_repositories)
 					reposChannel <- repository
 				}
 			}
