@@ -1,23 +1,23 @@
-package cmd_status
+package commands
 
 import (
 	"github.com/marcelfw/mgit/repository"
 	"strings"
 )
 
-const name string = "status"
+const nameStatus string = "status"
 
 type cmdStatus struct {
 }
 
-func NewCommand() cmdStatus {
+func NewStatusCommand() cmdStatus {
 	var cmd cmdStatus
 
 	return cmd
 }
 
 func (cmd cmdStatus) Usage(name_len int) string {
-	return name + strings.Repeat(" ", name_len-len(name)) + " Return the status of each repository"
+	return nameStatus + strings.Repeat(" ", name_len-len(nameStatus)) + " Return the status of each repository"
 }
 
 func (cmd cmdStatus) Help() string {
