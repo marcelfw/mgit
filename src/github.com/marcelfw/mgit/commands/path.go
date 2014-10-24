@@ -40,6 +40,10 @@ func (cmd cmdPath) Init(args []string) (outCmd interface{}) {
 	return cmd
 }
 
+func (cmd cmdPath) RunConcurrently() (bool) {
+	return true
+}
+
 func (cmd cmdPath) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
 	if repository.PathMatch(cmd.match) {
 		return repository, true

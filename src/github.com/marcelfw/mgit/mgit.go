@@ -14,7 +14,12 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"log"
+	"runtime/pprof"
 )
+
+// channel size for pushing repositories
+const numCachedRepositories = 100
 
 // number of parallel processors.
 const numDigesters = 5
@@ -26,6 +31,10 @@ type command interface {
 
 	Init(args []string) interface{}
 
+	// Return true if run can be executed concurrently.
+	RunConcurrently() (bool)
+
+	// Run the actual command.
 	Run(repository.Repository) (repository.Repository, bool)
 
 	OutputHeader() []string
@@ -57,7 +66,7 @@ Commands are:
 func getCommands() (cmds map[string]command) {
 	cmds = make(map[string]command)
 
-	cmds["status"] = commands.NewStatusCommand()
+	cmds["list"] = commands.NewListCommand()
 	cmds["path"] = commands.NewPathCommand()
 
 	return
@@ -65,13 +74,18 @@ func getCommands() (cmds map[string]command) {
 
 // goRepositories concurrently performs some actions on each repository.
 func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command command) {
+	digesters := numDigesters
+	if !command.RunConcurrently() {
+		digesters = 1
+	}
+
 	var wg sync.WaitGroup
-	wg.Add(numDigesters)
-	for i := 0; i < numDigesters; i++ {
+	wg.Add(digesters)
+	for i := 0; i < digesters; i++ {
 		go func() {
 			for repository := range inChannel {
 				// Always require this information.
-				repository.RetrieveBasics()
+				//repository.RetrieveBasics()
 
 				if outRepository, output := command.Run(repository); output == true {
 					outChannel <- outRepository
@@ -131,7 +145,7 @@ func outputTextTable(header []string, rows [][]string) string {
 	for _, row := range rows {
 		for idx, column := range row {
 			if idx > 0 {
-				buffer.WriteByte(32)
+				buffer.WriteString("  ")
 			}
 
 			buffer.WriteString(column)
@@ -149,7 +163,7 @@ func outputTextTable(header []string, rows [][]string) string {
 // Run the actual command with the filter.
 func runCommand(command command, filter repository.RepositoryFilter) {
 	// Find repositories which match filter and put on inchannel.
-	inChannel := repository.FindRepositories(filter, numDigesters)
+	inChannel := repository.FindRepositories(filter, numCachedRepositories)
 
 	// Get additional information about repositories and put on outChannel.
 	outChannel := make(chan repository.Repository, numDigesters)
@@ -181,6 +195,13 @@ func runCommand(command command, filter repository.RepositoryFilter) {
 
 func main() {
 	commands := getCommands()
+
+	f, err := os.Create("mgit.pprof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
 
 	text_command, args, filter, ok := repository.ParseCommandline()
 	if ok == false {
