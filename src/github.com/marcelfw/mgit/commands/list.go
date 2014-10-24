@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-const nameList string = "list"
-
 type cmdList struct {
 }
 
@@ -24,12 +22,21 @@ func NewListCommand() cmdList {
 	return cmd
 }
 
-func (cmd cmdList) Usage(name_len int) string {
-	return nameList + strings.Repeat(" ", name_len-len(nameList)) + " Return the status of each repository"
+func (cmd cmdList) Usage() string {
+	return "Return the status of each repository"
 }
 
 func (cmd cmdList) Help() string {
-	return "Returns really short status for repository."
+	return `Return the status of each repository.
+
+Shown are:
+  Name     Shortened work directory of repository
+  Branch   Current branch
+  Status   Status of repository:
+           Ok       Everything is committed
+           Changes  There are changes to commit
+  Commit   Last author commit date
+  Subject  Subject of last commit`
 }
 
 func (cmd cmdList) Init(args []string) (outCmd interface{}) {

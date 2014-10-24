@@ -70,7 +70,7 @@ func readShortcutFromConfiguration(shortcut string, filter RepositoryFilter) (Re
 	return filter, false
 }
 
-// parseCommandline parses and validates the command-line and returns useful structs to continue.
+// parseCommandline parses and validates the command-line and return useful structs to continue.
 func ParseCommandline() (command string, args []string, filter RepositoryFilter, ok bool) {
 	var rootDirectory string
 	var depth int
@@ -81,16 +81,19 @@ func ParseCommandline() (command string, args []string, filter RepositoryFilter,
 	var shortcut string
 
 	filter = RepositoryFilter{rootDirectory: "."}
-	flag.StringVar(&rootDirectory, "root", "", "set root directory")
-	flag.IntVar(&depth, "d", 0, "maximum depth to search in")
-	flag.StringVar(&remote, "r", "", "set remote to filter to include")
-	flag.StringVar(&noremote, "nr", "", "set remote to filter to exclude")
-	flag.StringVar(&branch, "b", "", "set branch to filter to include")
-	flag.StringVar(&branch, "nb", "", "set branch to filter to exclude")
-	flag.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
-	flag.Parse()
 
-	if flag.NArg() == 0 {
+	preCommandFlags := flag.NewFlagSet("precommandflags", flag.ContinueOnError)
+	preCommandFlags.StringVar(&rootDirectory, "root", "", "set root directory")
+	preCommandFlags.IntVar(&depth, "d", 0, "maximum depth to search in")
+	preCommandFlags.StringVar(&remote, "r", "", "select only with this remote")
+	preCommandFlags.StringVar(&noremote, "nr", "", "select only without this remote")
+	preCommandFlags.StringVar(&branch, "b", "", "select only with this branch")
+	preCommandFlags.StringVar(&branch, "nb", "", "select only without this branch")
+	preCommandFlags.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
+
+	preCommandFlags.Parse(os.Args[1:])
+
+	if preCommandFlags.NArg() == 0 {
 		return command, args, filter, false
 	}
 
@@ -122,7 +125,7 @@ func ParseCommandline() (command string, args []string, filter RepositoryFilter,
 		filter.nobranch = true
 	}
 
-	args = flag.Args()
+	args = preCommandFlags.Args()
 	command = args[0]
 	args = args[1:]
 

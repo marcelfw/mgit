@@ -10,12 +10,13 @@ import (
 	"fmt"
 	"github.com/marcelfw/mgit/commands"
 	"github.com/marcelfw/mgit/repository"
+	"log"
 	"os"
+	"runtime/pprof"
 	"sort"
 	"strings"
 	"sync"
-	"log"
-	"runtime/pprof"
+	"reflect"
 )
 
 // channel size for pushing repositories
@@ -26,13 +27,13 @@ const numDigesters = 5
 
 // command is the interface used for each command.
 type command interface {
-	Usage(int) string
-	Help() string
+	Usage() string // short string usage
+	Help() string  // help info
 
 	Init(args []string) interface{}
 
 	// Return true if run can be executed concurrently.
-	RunConcurrently() (bool)
+	RunConcurrently() bool
 
 	// Run the actual command.
 	Run(repository.Repository) (repository.Repository, bool)
@@ -43,29 +44,32 @@ type command interface {
 
 // Usage returns the usage for the program.
 func Usage(commands map[string]command) {
-	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>] [-b <branch>] [-r <remote>]
-			<command> [<args>]
+	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>]
+            [-b <branch>] [-r <remote>] [-nb <no-branch>] [-nr <no-remote>]
+            <command> [<args>]
 
 Commands are:
-
 `)
 
-	var name_len int
-	for name, _ := range commands {
-		if len(name) > name_len {
-			name_len = len(name)
-		}
+	cmdTable := make([][]string, 0, len(commands))
+
+	for name, command := range commands {
+		usage := make([]string, 2, 2)
+
+		usage[0] = "  " + name
+		usage[1] = command.Usage()
+
+		cmdTable = append(cmdTable, usage)
 	}
 
-	for _, command := range commands {
-		fmt.Fprintln(os.Stderr, command.Usage(name_len))
-	}
+	fmt.Fprint(os.Stderr, returnTextTable(nil, cmdTable))
 }
 
 // getCommands fetches all commands available for this run.
 func getCommands() (cmds map[string]command) {
 	cmds = make(map[string]command)
 
+	cmds["help"] = commands.NewHelpCommand()
 	cmds["list"] = commands.NewListCommand()
 	cmds["path"] = commands.NewPathCommand()
 
@@ -98,7 +102,7 @@ func goRepositories(inChannel chan repository.Repository, outChannel chan reposi
 }
 
 // Output an text string table.
-func outputTextTable(header []string, rows [][]string) string {
+func returnTextTable(header []string, rows [][]string) string {
 	var buffer bytes.Buffer
 
 	// Storage for column widths and line.
@@ -190,7 +194,7 @@ func runCommand(command command, filter repository.RepositoryFilter) {
 	}
 
 	// Output nicely.
-	fmt.Print(outputTextTable(command.OutputHeader(), rows))
+	fmt.Print(returnTextTable(command.OutputHeader(), rows))
 }
 
 func main() {
@@ -203,23 +207,36 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	text_command, args, filter, ok := repository.ParseCommandline()
+	textCommand, args, filter, ok := repository.ParseCommandline()
 	if ok == false {
 		Usage(commands)
 		return
 	}
 
 	var curCommand command
-	if curCommand, ok = commands[text_command]; ok == false {
+	if curCommand, ok = commands[textCommand]; ok == false {
 		Usage(commands)
 		return
 	}
+
 
 	// Let the command initialize itself with the arguments.
 	initResult := curCommand.Init(args)
 	if newCommand, ok := initResult.(command); ok == true {
 		curCommand = newCommand
 	}
+
+	if cmdType := reflect.TypeOf(curCommand); cmdType.Name() == "cmdHelp" {
+		if len(args) == 1 {
+			if helpCommand, ok := commands[args[0]]; ok == true {
+				fmt.Fprintln(os.Stderr, helpCommand.Help())
+				return
+			}
+		}
+		Usage(commands)
+		return
+	}
+
 
 	// Run the actual command.
 	runCommand(curCommand, filter)

@@ -8,10 +8,7 @@ package commands
 
 import (
 	"github.com/marcelfw/mgit/repository"
-	"strings"
 )
-
-const namePath string = "path"
 
 type cmdPath struct {
 	match string
@@ -25,12 +22,14 @@ func NewPathCommand() cmdPath {
 	return cmd
 }
 
-func (cmd cmdPath) Usage(name_len int) string {
-	return namePath + strings.Repeat(" ", name_len-len(namePath)) + " Return repository paths of matching names."
+func (cmd cmdPath) Usage() string {
+	return "Return repository path of matched names."
 }
 
 func (cmd cmdPath) Help() string {
-	return "Returns repository directory."
+	return `Return repository path of matched names.
+
+Returns all the actual paths matched by the search argument.`
 }
 
 func (cmd cmdPath) Init(args []string) (outCmd interface{}) {
@@ -53,9 +52,6 @@ func (cmd cmdPath) Run(repository repository.Repository) (outRepository reposito
 
 func (cmd cmdPath) OutputHeader() []string {
 	return nil
-	/*return []string{
-		"Name", "Branch", "Status",
-	}*/
 }
 
 func (cmd cmdPath) Output(repository repository.Repository) []string {
