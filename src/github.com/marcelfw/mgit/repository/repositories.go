@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"fmt"
 )
 
 // RepositoryFilter defines a filter for repositories.
@@ -55,8 +54,6 @@ func NewRepositoryFilter(config map[string]string) (filter RepositoryFilter) {
 		filter.remote = value
 		filter.noremote = true
 	}
-
-	fmt.Printf("map[%v] filter[%v]\n", config, filter)
 
 	return filter
 }

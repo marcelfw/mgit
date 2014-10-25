@@ -39,7 +39,7 @@ func (cmd cmdPath) Init(args []string) (outCmd interface{}) {
 	return cmd
 }
 
-func (cmd cmdPath) RunConcurrently() (bool) {
+func (cmd cmdPath) RunConcurrently() bool {
 	return true
 }
 
@@ -54,7 +54,7 @@ func (cmd cmdPath) OutputHeader() []string {
 	return nil
 }
 
-func (cmd cmdPath) Output(repository repository.Repository) []string {
+func (cmd cmdPath) Output(repository repository.Repository) interface{} {
 	columns := make([]string, 1, 1)
 
 	columns[0] = repository.GetPath()

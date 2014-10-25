@@ -8,37 +8,68 @@ package config
 
 import (
 	"flag"
+	"fmt"
+	"github.com/marcelfw/mgit/commands"
 	"github.com/marcelfw/mgit/repository"
 	go_ini "github.com/vaughan0/go-ini"
+	"os"
 	"os/user"
 	"regexp"
-	"fmt"
-	"os"
-	"strings"
 	"strconv"
+	"strings"
 )
 
-// readShortcutFromConfiguration reads the configuration and return the filter for the shortcut.
-// return bool false if something went wrong.
-func readShortcutFromConfiguration(shortcut string, filterMap map[string]string) (map[string]string, bool) {
-	//filterMap = make(map[string]string)
+// Command is the interface used for each command.
+type Command interface {
+	Usage() string // short string usage
+	Help() string  // help info
+
+	Init(args []string) interface{}
+
+	// Return true if run can be executed concurrently.
+	RunConcurrently() bool
+
+	// Run the actual command.
+	Run(repository.Repository) (repository.Repository, bool)
+
+	OutputHeader() []string
+	Output(repository.Repository) interface{}
+}
+
+
+// getOrderedConfigFiles finds all configuration files and returns them in order.
+func findOrderedConfigs() (configs []go_ini.File) {
+	configs = make([]go_ini.File, 0, 2)
 
 	user, err := user.Current()
 	if err != nil {
+		// @todo panic or fail silently?
 		fmt.Fprint(os.Stderr, "Cannot determine home directory!")
-		return filterMap, false
+		return nil
 	}
 
 	filename := user.HomeDir + "/.mgit"
 	if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
 		config, err := go_ini.LoadFile(filename)
 		if err != nil {
+			// @todo panic or fail silently?
 			fmt.Fprint(os.Stderr, "Cannot read configuration file, incorrect format!\n")
-			return filterMap, false
+			return nil
 		}
 
+		configs = append(configs, config)
+	}
 
-		r, _ := regexp.Compile("shortcut \"(.+)\"")
+	return configs
+}
+
+// readShortcutFromConfiguration reads the configuration and return the filter for the shortcut.
+// return bool false if something went wrong.
+func readShortcutFromConfiguration(shortcut string, filterMap map[string]string) (map[string]string, bool) {
+	configs := findOrderedConfigs()
+
+	r, _ := regexp.Compile("shortcut \"(.+)\"")
+	for _, config := range configs {
 		for name, vars := range config {
 			match := r.FindStringSubmatch(name)
 			if len(match) >= 2 && match[1] == shortcut {
@@ -59,16 +90,13 @@ func readShortcutFromConfiguration(shortcut string, filterMap map[string]string)
 				return filterMap, true
 			}
 		}
-	} else {
-		fmt.Fprintf(os.Stderr, "Cannot find configuration file, looked for %s! (%v %v)\n", filename, fi, err)
-		return filterMap, false
 	}
 
 	fmt.Fprintf(os.Stderr, "Could not find shortcut \"%s\"!\n", shortcut)
 	return filterMap, false
 }
 
-// parseCommandline parses and validates the command-line and return useful structs to continue.
+// ParseCommandline parses and validates the command-line and return useful structs to continue.
 func ParseCommandline() (command string, args []string, filter repository.RepositoryFilter, ok bool) {
 	var rootDirectory string
 	var depth int
@@ -77,8 +105,6 @@ func ParseCommandline() (command string, args []string, filter repository.Reposi
 	var branch string
 	var nobranch string
 	var shortcut string
-
-	filter = repository.RepositoryFilter{}
 
 	preCommandFlags := flag.NewFlagSet("precommandflags", flag.ContinueOnError)
 	preCommandFlags.StringVar(&rootDirectory, "root", "", "set root directory")
@@ -128,4 +154,33 @@ func ParseCommandline() (command string, args []string, filter repository.Reposi
 	args = args[1:]
 
 	return command, args, filter, true
+}
+
+// createCommand creates a command based on a configuration section.
+// returns _, false if command could not be created
+func createCommand(vars map[string]string) (Command, bool) {
+	if value, ok := vars["git"]; ok {
+		// add Git command
+		return commands.NewGitProxyCommand(value, vars), true
+	}
+	return nil, false
+}
+
+// AddConfigCommands add commands from the configuration files to the command list.
+func AddConfigCommands(commands map[string]Command) (map[string]Command) {
+	configs := findOrderedConfigs()
+
+	r, _ := regexp.Compile("command \"(.+)\"")
+	for _, config := range configs {
+		for name, vars := range config {
+			match := r.FindStringSubmatch(name)
+			if len(match) >= 2 {
+				if command, ok := createCommand(vars); ok {
+					commands[match[1]] = command
+				}
+			}
+		}
+	}
+
+	return commands
 }

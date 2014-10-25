@@ -26,25 +26,8 @@ const numCachedRepositories = 100
 // number of parallel processors.
 const numDigesters = 5
 
-// command is the interface used for each command.
-type command interface {
-	Usage() string // short string usage
-	Help() string  // help info
-
-	Init(args []string) interface{}
-
-	// Return true if run can be executed concurrently.
-	RunConcurrently() bool
-
-	// Run the actual command.
-	Run(repository.Repository) (repository.Repository, bool)
-
-	OutputHeader() []string
-	Output(repository.Repository) []string
-}
-
 // Usage returns the usage for the program.
-func Usage(commands map[string]command) {
+func Usage(commands map[string]config.Command) {
 	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>]
             [-b <branch>] [-r <remote>] [-nb <no-branch>] [-nr <no-remote>]
             <command> [<args>]
@@ -67,18 +50,20 @@ Commands are:
 }
 
 // getCommands fetches all commands available for this run.
-func getCommands() (cmds map[string]command) {
-	cmds = make(map[string]command)
+func getCommands() (cmds map[string]config.Command) {
+	cmds = make(map[string]config.Command)
 
 	cmds["help"] = commands.NewHelpCommand()
 	cmds["list"] = commands.NewListCommand()
 	cmds["path"] = commands.NewPathCommand()
 
+	cmds = config.AddConfigCommands(cmds)
+
 	return
 }
 
 // goRepositories concurrently performs some actions on each repository.
-func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command command) {
+func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command config.Command) {
 	digesters := numDigesters
 	if !command.RunConcurrently() {
 		digesters = 1
@@ -166,7 +151,7 @@ func returnTextTable(header []string, rows [][]string) string {
 }
 
 // Run the actual command with the filter.
-func runCommand(command command, filter repository.RepositoryFilter) {
+func runCommand(command config.Command, filter repository.RepositoryFilter) {
 	// Find repositories which match filter and put on inchannel.
 	inChannel := repository.FindRepositories(filter, numCachedRepositories)
 
@@ -187,11 +172,19 @@ func runCommand(command command, filter repository.RepositoryFilter) {
 	sort.Sort(repository.ByIndex(repositories))
 
 	// Simplify repository output to rows.
-	rows := make([][]string, len(repositories), len(repositories))
-	for row_idx, repository := range repositories {
+	rows := make([][]string, 0, len(repositories))
+	for _, repository := range repositories {
 		output := command.Output(repository)
 
-		rows[row_idx] = output
+		switch output.(type) {
+		case []string:
+			rows = append(rows, output.([]string))
+		case [][]string:
+			rows = append(rows, output.([][]string)...)
+		default:
+			log.Fatal("Unknown return type.")
+		}
+
 	}
 
 	// Output nicely.
@@ -199,8 +192,6 @@ func runCommand(command command, filter repository.RepositoryFilter) {
 }
 
 func main() {
-	commands := getCommands()
-
 	f, err := os.Create("mgit.pprof")
 	if err != nil {
 		log.Fatal(err)
@@ -208,13 +199,15 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
+	commands := getCommands()
+
 	textCommand, args, filter, ok := config.ParseCommandline()
 	if ok == false {
 		Usage(commands)
 		return
 	}
 
-	var curCommand command
+	var curCommand config.Command
 	if curCommand, ok = commands[textCommand]; ok == false {
 		Usage(commands)
 		return
@@ -222,7 +215,8 @@ func main() {
 
 	// Let the command initialize itself with the arguments.
 	initResult := curCommand.Init(args)
-	if newCommand, ok := initResult.(command); ok == true {
+	// @todo remove this casting
+	if newCommand, ok := initResult.(config.Command); ok == true {
 		curCommand = newCommand
 	}
 

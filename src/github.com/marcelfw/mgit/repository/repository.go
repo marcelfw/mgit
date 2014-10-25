@@ -197,6 +197,6 @@ func (repository *Repository) PutInfo(name string, value interface{}) {
 	repository.info[name] = value
 }
 
-func (repository *Repository) GetInfo(name string) (interface{}) {
+func (repository *Repository) GetInfo(name string) interface{} {
 	return repository.info[name]
 }

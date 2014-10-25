@@ -23,11 +23,11 @@ func NewHelpCommand() cmdHelp {
 }
 
 func (cmd cmdHelp) Usage() string {
-	return "Return help information."
+	return "Show this help information."
 }
 
 func (cmd cmdHelp) Help() string {
-	return `Return help information.
+	return `Show help information.
 
 Add command as argument to help for more information about the command.`
 }
@@ -36,7 +36,7 @@ func (cmd cmdHelp) Init(args []string) (outCmd interface{}) {
 	return nil
 }
 
-func (cmd cmdHelp) RunConcurrently() (bool) {
+func (cmd cmdHelp) RunConcurrently() bool {
 	return true
 }
 
@@ -48,6 +48,6 @@ func (cmd cmdHelp) OutputHeader() []string {
 	return nil
 }
 
-func (cmd cmdHelp) Output(repository repository.Repository) []string {
+func (cmd cmdHelp) Output(repository repository.Repository) interface{} {
 	return nil
 }

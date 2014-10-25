@@ -23,7 +23,7 @@ func NewListCommand() cmdList {
 }
 
 func (cmd cmdList) Usage() string {
-	return "Return the status of each repository"
+	return "List each repository with basic information."
 }
 
 func (cmd cmdList) Help() string {
@@ -61,7 +61,7 @@ func (cmd cmdList) getHumanTime(atime time.Time) string {
 	return atime.Format("Today, 15:04")
 }
 
-func (cmd cmdList) RunConcurrently() (bool) {
+func (cmd cmdList) RunConcurrently() bool {
 	return true
 }
 
@@ -96,7 +96,7 @@ func (cmd cmdList) OutputHeader() []string {
 	}
 }
 
-func (cmd cmdList) Output(repository repository.Repository) []string {
+func (cmd cmdList) Output(repository repository.Repository) interface{} {
 	columns := make([]string, 5, 5)
 
 	columns[0] = repository.Name
