@@ -10,7 +10,9 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"fmt"
 )
 
 // RepositoryFilter defines a filter for repositories.
@@ -22,6 +24,41 @@ type RepositoryFilter struct {
 	nobranch bool
 	remote   string
 	noremote bool
+}
+
+// create a new RepositoryFilter
+func NewRepositoryFilter(config map[string]string) (filter RepositoryFilter) {
+	filter.rootDirectory = "."
+	if value, ok := config["rootDirectory"]; ok {
+		filter.rootDirectory = value
+	}
+	if value, ok := config["depth"]; ok {
+		depth, err := strconv.ParseInt(value, 10, 0)
+		if err == nil {
+			filter.depth = int(depth)
+		} else {
+			filter.depth = 0
+		}
+	}
+
+	if value, ok := config["branch"]; ok {
+		filter.branch = value
+	}
+	if value, ok := config["nobranch"]; ok {
+		filter.branch = value
+		filter.nobranch = true
+	}
+	if value, ok := config["remote"]; ok {
+		filter.remote = value
+	}
+	if value, ok := config["noremote"]; ok {
+		filter.remote = value
+		filter.noremote = true
+	}
+
+	fmt.Printf("map[%v] filter[%v]\n", config, filter)
+
+	return filter
 }
 
 // analysePath extracts repositories from regular file paths.

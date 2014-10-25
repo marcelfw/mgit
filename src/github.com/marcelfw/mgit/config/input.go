@@ -2,29 +2,31 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package repository implements detection, filtering and structure of repositories.
+// Package config implements configuration and start-up.
 // This source parses the command-line and reads additional input configuration.
-package repository
+package config
 
 import (
 	"flag"
+	"github.com/marcelfw/mgit/repository"
 	go_ini "github.com/vaughan0/go-ini"
 	"os/user"
 	"regexp"
-	"strconv"
-
 	"fmt"
 	"os"
 	"strings"
+	"strconv"
 )
 
 // readShortcutFromConfiguration reads the configuration and return the filter for the shortcut.
 // return bool false if something went wrong.
-func readShortcutFromConfiguration(shortcut string, filter RepositoryFilter) (RepositoryFilter, bool) {
+func readShortcutFromConfiguration(shortcut string, filterMap map[string]string) (map[string]string, bool) {
+	//filterMap = make(map[string]string)
+
 	user, err := user.Current()
 	if err != nil {
 		fmt.Fprint(os.Stderr, "Cannot determine home directory!")
-		return filter, false
+		return filterMap, false
 	}
 
 	filename := user.HomeDir + "/.mgit"
@@ -32,8 +34,9 @@ func readShortcutFromConfiguration(shortcut string, filter RepositoryFilter) (Re
 		config, err := go_ini.LoadFile(filename)
 		if err != nil {
 			fmt.Fprint(os.Stderr, "Cannot read configuration file, incorrect format!\n")
-			return filter, false
+			return filterMap, false
 		}
+
 
 		r, _ := regexp.Compile("shortcut \"(.+)\"")
 		for name, vars := range config {
@@ -43,35 +46,30 @@ func readShortcutFromConfiguration(shortcut string, filter RepositoryFilter) (Re
 					lkey := strings.ToLower(key)
 					switch {
 					case lkey == "rootdirectory":
-						filter.rootDirectory = value
+						filterMap["rootDirectory"] = value
 					case lkey == "depth":
-						depth, err := strconv.ParseInt(value, 10, 0)
-						if err != nil {
-							filter.depth = int(depth)
-						} else {
-							filter.depth = 0
-						}
+						filterMap["depth"] = value
 					case lkey == "remote":
-						filter.remote = value
+						filterMap["remote"] = value
 					case lkey == "branch":
-						filter.branch = value
+						filterMap["branch"] = value
 					}
 				}
 
-				return filter, true
+				return filterMap, true
 			}
 		}
 	} else {
 		fmt.Fprintf(os.Stderr, "Cannot find configuration file, looked for %s! (%v %v)\n", filename, fi, err)
-		return filter, false
+		return filterMap, false
 	}
 
 	fmt.Fprintf(os.Stderr, "Could not find shortcut \"%s\"!\n", shortcut)
-	return filter, false
+	return filterMap, false
 }
 
 // parseCommandline parses and validates the command-line and return useful structs to continue.
-func ParseCommandline() (command string, args []string, filter RepositoryFilter, ok bool) {
+func ParseCommandline() (command string, args []string, filter repository.RepositoryFilter, ok bool) {
 	var rootDirectory string
 	var depth int
 	var remote string
@@ -80,7 +78,7 @@ func ParseCommandline() (command string, args []string, filter RepositoryFilter,
 	var nobranch string
 	var shortcut string
 
-	filter = RepositoryFilter{rootDirectory: "."}
+	filter = repository.RepositoryFilter{}
 
 	preCommandFlags := flag.NewFlagSet("precommandflags", flag.ContinueOnError)
 	preCommandFlags.StringVar(&rootDirectory, "root", "", "set root directory")
@@ -97,33 +95,33 @@ func ParseCommandline() (command string, args []string, filter RepositoryFilter,
 		return command, args, filter, false
 	}
 
+	filterMap := make(map[string]string)
+
 	if shortcut != "" {
-		filter, ok = readShortcutFromConfiguration(shortcut, filter)
+		filterMap, ok = readShortcutFromConfiguration(shortcut, filterMap)
 		if !ok {
 			return command, args, filter, false
 		}
 	}
 
 	if rootDirectory != "" {
-		filter.rootDirectory = rootDirectory
+		filterMap["rootDirectory"] = rootDirectory
 	}
 	if depth != 0 {
-		filter.depth = depth
+		filterMap["depth"] = strconv.FormatInt(int64(depth), 10)
 	}
 	if remote != "" {
-		filter.remote = remote
-	}
-	if noremote != "" {
-		filter.remote = noremote
-		filter.noremote = true
+		filterMap["remote"] = remote
+	} else if noremote != "" {
+		filterMap["noremote"] = noremote
 	}
 	if branch != "" {
-		filter.branch = branch
+		filterMap["branch"] = branch
+	} else if nobranch != "" {
+		filterMap["nobranch"] = branch
 	}
-	if nobranch != "" {
-		filter.branch = nobranch
-		filter.nobranch = true
-	}
+
+	filter = repository.NewRepositoryFilter(filterMap)
 
 	args = preCommandFlags.Args()
 	command = args[0]

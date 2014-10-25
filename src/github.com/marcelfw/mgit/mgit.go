@@ -9,14 +9,15 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/marcelfw/mgit/commands"
+	"github.com/marcelfw/mgit/config"
 	"github.com/marcelfw/mgit/repository"
 	"log"
 	"os"
+	"reflect"
 	"runtime/pprof"
 	"sort"
 	"strings"
 	"sync"
-	"reflect"
 )
 
 // channel size for pushing repositories
@@ -207,7 +208,7 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	textCommand, args, filter, ok := repository.ParseCommandline()
+	textCommand, args, filter, ok := config.ParseCommandline()
 	if ok == false {
 		Usage(commands)
 		return
@@ -218,7 +219,6 @@ func main() {
 		Usage(commands)
 		return
 	}
-
 
 	// Let the command initialize itself with the arguments.
 	initResult := curCommand.Init(args)
@@ -236,7 +236,6 @@ func main() {
 		Usage(commands)
 		return
 	}
-
 
 	// Run the actual command.
 	runCommand(curCommand, filter)
