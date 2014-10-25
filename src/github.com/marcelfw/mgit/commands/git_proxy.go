@@ -81,6 +81,7 @@ func (cmd cmdGitProxy) OutputHeader() []string {
 	return columns
 }
 
+// Output returns the result of the command
 func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
 
 	output := repository.GetInfo("proxy."+cmd.command).(string)

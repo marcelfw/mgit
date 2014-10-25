@@ -28,7 +28,7 @@ const numDigesters = 5
 
 // Usage returns the usage for the program.
 func Usage(commands map[string]config.Command) {
-	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>]
+	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>] -d <max-depth>
             [-b <branch>] [-r <remote>] [-nb <no-branch>] [-nr <no-remote>]
             <command> [<args>]
 
