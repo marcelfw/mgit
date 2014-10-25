@@ -86,13 +86,13 @@ func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
 	output := repository.GetInfo("proxy."+cmd.command).(string)
 	lines := strings.Split(output, "\n")
 
-	switch len(lines) {
-	case 0:
+	switch {
+	case len(lines) == 0 || (len(lines) == 1 && output == ""):
 		columns := make([]string, 2, 2)
 		columns[0] = repository.Name
-		columns[1] = "-"
+		columns[1] = "<>"
 		return columns
-	case 1:
+	case len(lines) == 1:
 		columns := make([]string, 2, 2)
 		columns[0] = repository.Name
 		columns[1] = output
