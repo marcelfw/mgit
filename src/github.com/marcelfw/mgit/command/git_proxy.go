@@ -55,7 +55,7 @@ func (cmd cmdGitProxy) Help() string {
 	return cmd.help
 }
 
-func (cmd cmdGitProxy) Init(args []string) (outCmd interface{}) {
+func (cmd cmdGitProxy) Init(args []string) (outCmd repository.Command) {
 	cmd.args = append(cmd.args, args...)
 	return cmd
 }

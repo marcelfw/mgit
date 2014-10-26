@@ -32,7 +32,7 @@ func (cmd cmdPath) Help() string {
 Returns all the actual paths matched by the search argument.`
 }
 
-func (cmd cmdPath) Init(args []string) (outCmd interface{}) {
+func (cmd cmdPath) Init(args []string) (outCmd repository.Command) {
 	if len(args) >= 1 {
 		cmd.match = args[0]
 	}

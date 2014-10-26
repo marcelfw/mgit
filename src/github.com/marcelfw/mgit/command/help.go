@@ -32,7 +32,7 @@ func (cmd cmdHelp) Help() string {
 Add command as argument to help for more information about the command.`
 }
 
-func (cmd cmdHelp) Init(args []string) (outCmd interface{}) {
+func (cmd cmdHelp) Init(args []string) (outCmd repository.Command) {
 	return nil
 }
 

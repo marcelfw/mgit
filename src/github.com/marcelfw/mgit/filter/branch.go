@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package commands implements all internal commands.
-// This source returns the status of all repositories.
+// Package filter implements all internal filters.
+// This code filters on the presence of a branch.
 package filter
 
 import (
@@ -14,8 +14,8 @@ import (
 type filterBranch struct {
 	name string
 
-	branch   string
-	nobranch string
+	branch   *string
+	nobranch *string
 }
 
 func NewBranchFilter() filterBranch {
@@ -24,15 +24,23 @@ func NewBranchFilter() filterBranch {
 	return filter
 }
 
-func (cmd filterBranch) Usage() string {
-	return "Filter on branch."
+func (filter filterBranch) Usage() string {
+	return "Filter on the present of a branch."
 }
 
-func (cmd filterBranch) AddFlags(flags *flag.FlagSet) {
-	flags.StringVar(&cmd.branch, "b", "", "select only with this branch")
-	flags.StringVar(&cmd.nobranch, "nb", "", "select only without this branch")
+func (filter filterBranch) AddFlags(flags *flag.FlagSet) (repository.Filter) {
+	filter.branch = flags.String("branch", "", "select only with this branch")
+	filter.nobranch = flags.String("nobranch", "", "select only without this branch")
+
+	return filter
 }
 
-func (cmd filterBranch) FilterRepository(repository.Repository) bool {
+func (filter filterBranch) FilterRepository(repos repository.Repository) bool {
+	if *filter.branch != "" {
+		return repos.IsBranch(*filter.branch)
+	} else if *filter.nobranch != "" {
+		return !repos.IsBranch(*filter.nobranch)
+	}
+	
 	return true
 }

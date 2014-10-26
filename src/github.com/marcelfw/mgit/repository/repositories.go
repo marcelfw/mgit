@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
@@ -19,41 +18,15 @@ type RepositoryFilter struct {
 	rootDirectory string
 	depth         int
 
-	branch   string
-	nobranch bool
-	remote   string
-	noremote bool
+	filters []Filter
 }
 
 // create a new RepositoryFilter
-func NewRepositoryFilter(config map[string]string) (filter RepositoryFilter) {
-	filter.rootDirectory = "."
-	if value, ok := config["rootDirectory"]; ok {
-		filter.rootDirectory = value
-	}
-	if value, ok := config["depth"]; ok {
-		depth, err := strconv.ParseInt(value, 10, 0)
-		if err == nil {
-			filter.depth = int(depth)
-		} else {
-			filter.depth = 0
-		}
-	}
+func NewRepositoryFilter(rootDirectory string, depth int, filters []Filter) (filter RepositoryFilter) {
+	filter.rootDirectory = rootDirectory
+	filter.depth = depth
 
-	if value, ok := config["branch"]; ok {
-		filter.branch = value
-	}
-	if value, ok := config["nobranch"]; ok {
-		filter.branch = value
-		filter.nobranch = true
-	}
-	if value, ok := config["remote"]; ok {
-		filter.remote = value
-	}
-	if value, ok := config["noremote"]; ok {
-		filter.remote = value
-		filter.noremote = true
-	}
+	filter.filters = filters
 
 	return filter
 }
@@ -73,13 +46,11 @@ func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath
 			}
 			if repository, ok := NewRepository(no_of_repositories, name, vpath); ok {
 				var found = true
-				if found == true && filter.branch != "" {
-					is_branch := repository.IsBranch(filter.branch)
-					found = (!filter.nobranch && is_branch) || (filter.nobranch && !is_branch)
-				}
-				if found == true && filter.remote != "" {
-					is_remote := repository.IsRemote(filter.remote)
-					found = (!filter.noremote && is_remote) || (filter.noremote && !is_remote)
+				for _, filter := range filter.filters {
+					if filter.FilterRepository(repository) == false {
+						found = false
+						break
+					}
 				}
 
 				if found {

@@ -28,7 +28,7 @@ const numCachedRepositories = 100
 const numDigesters = 5
 
 // Usage returns the usage for the program.
-func Usage(commands map[string]config.Command) {
+func Usage(commands map[string]repository.Command) {
 	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>] -d <max-depth>
             [-b <branch>] [-r <remote>] [-nb <no-branch>] [-nr <no-remote>]
             <command> [<args>]
@@ -51,17 +51,18 @@ Commands are:
 }
 
 // getFilters returns all filters.
-func getFilters() ([]config.Filter) {
-	filters := make([]config.Filter, 0, 10)
+func getFilterDefs() ([]repository.FilterDefinition) {
+	filters := make([]repository.FilterDefinition, 0, 10)
 
 	filters = append(filters, filter.NewBranchFilter())
+	filters = append(filters, filter.NewRemoteFilter())
 
 	return filters
 }
 
 // getCommands fetches all commands available for this run.
-func getCommands() (map[string]config.Command) {
-	cmds := make(map[string]config.Command)
+func getCommands() (map[string]repository.Command) {
+	cmds := make(map[string]repository.Command)
 
 	cmds["help"] = command.NewHelpCommand()
 	cmds["list"] = command.NewListCommand()
@@ -73,7 +74,7 @@ func getCommands() (map[string]config.Command) {
 }
 
 // goRepositories concurrently performs some actions on each repository.
-func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command config.Command) {
+func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command repository.Command) {
 	digesters := numDigesters
 	if !command.RunConcurrently() {
 		digesters = 1
@@ -161,7 +162,7 @@ func returnTextTable(header []string, rows [][]string) string {
 }
 
 // Run the actual command with the filter.
-func runCommand(command config.Command, filter repository.RepositoryFilter) {
+func runCommand(command repository.Command, filter repository.RepositoryFilter) {
 	// Find repositories which match filter and put on inchannel.
 	inChannel := repository.FindRepositories(filter, numCachedRepositories)
 
@@ -209,16 +210,16 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	filters := getFilters()
+	filterDefs := getFilterDefs()
 	commands := getCommands()
 
-	textCommand, args, filter, ok := config.ParseCommandline(filters)
+	textCommand, args, filter, ok := config.ParseCommandline(filterDefs)
 	if ok == false {
 		Usage(commands)
 		return
 	}
 
-	var curCommand config.Command
+	var curCommand repository.Command
 	if curCommand, ok = commands[textCommand]; ok == false {
 		Usage(commands)
 		return
@@ -227,7 +228,7 @@ func main() {
 	// Let the command initialize itself with the arguments.
 	initResult := curCommand.Init(args)
 	// @todo remove this casting
-	if newCommand, ok := initResult.(config.Command); ok == true {
+	if newCommand, ok := initResult.(repository.Command); ok == true {
 		curCommand = newCommand
 	}
 

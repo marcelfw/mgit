@@ -19,34 +19,6 @@ import (
 	"strings"
 )
 
-// Filter is the interface used for each filter.
-type Filter interface {
-	Usage() string // short string describing the usage
-
-	// Add flags for the command-line parser.
-	AddFlags(*flag.FlagSet)
-
-	// Filter a single repository.
-	// Return true if the repository should be included.
-	FilterRepository(repository.Repository) (bool)
-}
-
-// Command is the interface used for each command.
-type Command interface {
-	Usage() string // short string describing the usage
-	Help() string  // help info
-
-	Init(args []string) interface{}
-
-	// Return true if run can be executed concurrently.
-	RunConcurrently() bool
-
-	// Run the actual command.
-	Run(repository.Repository) (repository.Repository, bool)
-
-	OutputHeader() []string
-	Output(repository.Repository) interface{}
-}
 
 
 // getOrderedConfigFiles finds all configuration files and returns them in order.
@@ -77,8 +49,10 @@ func findOrderedConfigs() (configs []go_ini.File) {
 
 // readShortcutFromConfiguration reads the configuration and return the filter for the shortcut.
 // return bool false if something went wrong.
-func readShortcutFromConfiguration(shortcut string, filterMap map[string]string) (map[string]string, bool) {
+func readShortcutFromConfiguration(shortcut string) (filterMap map[string]string, ok bool) {
 	configs := findOrderedConfigs()
+
+	filterMap = make(map[string]string)
 
 	r, _ := regexp.Compile("shortcut \"(.+)\"")
 	for _, config := range configs {
@@ -109,76 +83,71 @@ func readShortcutFromConfiguration(shortcut string, filterMap map[string]string)
 }
 
 // ParseCommandline parses and validates the command-line and return useful structs to continue.
-func ParseCommandline(filters []Filter) (command string, args []string, filter repository.RepositoryFilter, ok bool) {
+func ParseCommandline(filterDefs []repository.FilterDefinition) (command string, args []string, repositoryFilter repository.RepositoryFilter, ok bool) {
 	var rootDirectory string
 	var depth int
-	var remote string
-	var noremote string
-	var branch string
-	var nobranch string
 	var shortcut string
 
-	preCommandFlags := flag.NewFlagSet("precommandflags", flag.ContinueOnError)
-	preCommandFlags.StringVar(&rootDirectory, "root", "", "set root directory")
-	preCommandFlags.IntVar(&depth, "d", 0, "maximum depth to search in")
-	preCommandFlags.StringVar(&remote, "r", "", "select only with this remote")
-	preCommandFlags.StringVar(&noremote, "nr", "", "select only without this remote")
-	//preCommandFlags.StringVar(&branch, "b", "", "select only with this branch")
-	//preCommandFlags.StringVar(&branch, "nb", "", "select only without this branch")
-	preCommandFlags.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
 
-	for _, filter := range filters {
-		filter.AddFlags(preCommandFlags)
+	mgitFlags := flag.NewFlagSet("mgitFlags", flag.ContinueOnError)
+
+	// These are truly hard-coded for now.
+	mgitFlags.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
+	mgitFlags.StringVar(&rootDirectory, "root", "", "set root directory")
+	mgitFlags.IntVar(&depth, "d", 0, "maximum depth to search in")
+
+	filters := make([]repository.Filter, 0, len(filterDefs))
+	for _, filterDef := range filterDefs {
+		filters = append(filters, filterDef.AddFlags(mgitFlags))
 	}
 
-	preCommandFlags.Parse(os.Args[1:])
+	mgitFlags.Parse(os.Args[1:])
 
-	for _, filter := range filters {
-		fmt.Printf("filter[%v]\n", filter)
+	if mgitFlags.NArg() == 0 {
+		return command, args, repositoryFilter, false
 	}
 
-	if preCommandFlags.NArg() == 0 {
-		return command, args, filter, false
-	}
 
-	filterMap := make(map[string]string)
+	var filterMap map[string]string
 
 	if shortcut != "" {
-		filterMap, ok = readShortcutFromConfiguration(shortcut, filterMap)
+		filterMap, ok = readShortcutFromConfiguration(shortcut)
 		if !ok {
-			return command, args, filter, false
+			return command, args, repositoryFilter, false
 		}
 	}
 
-	if rootDirectory != "" {
-		filterMap["rootDirectory"] = rootDirectory
+	if rootDirectory == "" {
+		if value, ok := filterMap["rootDirectory"]; ok {
+			rootDirectory = value
+		}
 	}
-	if depth != 0 {
-		filterMap["depth"] = strconv.FormatInt(int64(depth), 10)
-	}
-	if remote != "" {
-		filterMap["remote"] = remote
-	} else if noremote != "" {
-		filterMap["noremote"] = noremote
-	}
-	if branch != "" {
-		filterMap["branch"] = branch
-	} else if nobranch != "" {
-		filterMap["nobranch"] = branch
+	if depth == 0 {
+		if value, ok := filterMap["depth"]; ok {
+			if ivalue, err := strconv.ParseInt(value, 10, 0); err == nil {
+				depth = int(ivalue)
+			}
+		}
 	}
 
-	filter = repository.NewRepositoryFilter(filterMap)
+	mgitFlags.VisitAll(func(flag *flag.Flag){
+		if value, ok := filterMap[flag.Name]; ok {
+			fmt.Printf("There is a shortcut for [%v] '%s'\n", flag, value)
+		}
+	})
 
-	args = preCommandFlags.Args()
+	repositoryFilter = repository.NewRepositoryFilter(rootDirectory, depth, filters)
+
+	args = mgitFlags.Args()
 	command = args[0]
 	args = args[1:]
 
-	return command, args, filter, true
+	return command, args, repositoryFilter, true
 }
 
 // createCommand creates a command based on a configuration section.
 // returns _, false if command could not be created
-func createCommand(vars map[string]string) (Command, bool) {
+func createCommand(vars map[string]string) (repository.Command, bool) {
 	if value, ok := vars["git"]; ok {
 		// add Git command
 		return command.NewGitProxyCommand(value, vars), true
@@ -187,7 +156,7 @@ func createCommand(vars map[string]string) (Command, bool) {
 }
 
 // AddConfigCommands add commands from the configuration files to the command list.
-func AddConfigCommands(commands map[string]Command) (map[string]Command) {
+func AddConfigCommands(commands map[string]repository.Command) (map[string]repository.Command) {
 	configs := findOrderedConfigs()
 
 	r, _ := regexp.Compile("command \"(.+)\"")
