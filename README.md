@@ -3,22 +3,21 @@ MGit: Multiple Git repository handler
 
 MGit is a tool to run Git commands for multiple repositories simultaneously.
 
-MGit allows you to easily define filters and then run commands on the resulting repository list. Filters can be
-pre-configured in a configuration file or you can manually enter them on the command-line. There are a couple of
-pre-defined commands, but they can be easily re-configured and new ones can be added with only a few lines of
-configuration.
+MGit allows you to easily define filters and then run commands on the resulting repository list. Filters can be configured in a configuration file or you can manually enter them on the command-line.
+Useful commands are installed by default. Additional commands can be added into the configuration. All existing commands can be reconfigured in the same configuration.
+Results are collected and presented as one report.
 
 Usage examples
-==============
+--------------
 
-Want to update all your code with the shared repository server?
+    # Copy your development code to your laptop.
+    mgit -b develop push laptop
 
-    # Push all repositories which are on branch "develop" and have a remote "git-server"
-    mgit -b develop -r git-server push git-server
+    # Refresh all customer code on your machine.
+    mgit -root ~/customer pull
 
-    # Pull all repositories below a certain directory.
-    mgit -root ~/client pull
-
+    # Refresh all your github clones.
+    mgit -rp github.com/username pull
 
 
 Under the hood
