@@ -15,7 +15,6 @@ import (
 	"os"
 	"os/user"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -101,12 +100,6 @@ func ParseCommandline(filterDefs []repository.FilterDefinition) (command string,
 		filters = append(filters, filterDef.AddFlags(mgitFlags))
 	}
 
-	mgitFlags.Parse(os.Args[1:])
-
-	if mgitFlags.NArg() == 0 {
-		return command, args, repositoryFilter, false
-	}
-
 
 	var filterMap map[string]string
 
@@ -115,8 +108,30 @@ func ParseCommandline(filterDefs []repository.FilterDefinition) (command string,
 		if !ok {
 			return command, args, repositoryFilter, false
 		}
+
+		shortcutArgs := make([]string, 0, 10)
+		mgitFlags.VisitAll(func(flag *flag.Flag){
+			if value, ok := filterMap[flag.Name]; ok {
+				fmt.Printf("There is a shortcut for [%v] '%s'\n", flag, value)
+				shortcutArgs = append(shortcutArgs, "-" + flag.Name)
+				shortcutArgs = append(shortcutArgs, value)
+			}
+		})
+
+		mgitFlags.Parse(shortcutArgs)
 	}
 
+
+	mgitFlags.Parse(os.Args[1:])
+
+	if mgitFlags.NArg() == 0 {
+		return command, args, repositoryFilter, false
+	}
+
+
+
+
+	/*
 	if rootDirectory == "" {
 		if value, ok := filterMap["rootDirectory"]; ok {
 			rootDirectory = value
@@ -129,12 +144,7 @@ func ParseCommandline(filterDefs []repository.FilterDefinition) (command string,
 			}
 		}
 	}
-
-	mgitFlags.VisitAll(func(flag *flag.Flag){
-		if value, ok := filterMap[flag.Name]; ok {
-			fmt.Printf("There is a shortcut for [%v] '%s'\n", flag, value)
-		}
-	})
+	*/
 
 	repositoryFilter = repository.NewRepositoryFilter(rootDirectory, depth, filters)
 
