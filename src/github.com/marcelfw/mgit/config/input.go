@@ -9,7 +9,7 @@ package config
 import (
 	"flag"
 	"fmt"
-	"github.com/marcelfw/mgit/commands"
+	"github.com/marcelfw/mgit/command"
 	"github.com/marcelfw/mgit/repository"
 	go_ini "github.com/vaughan0/go-ini"
 	"os"
@@ -19,9 +19,21 @@ import (
 	"strings"
 )
 
+// Filter is the interface used for each filter.
+type Filter interface {
+	Usage() string // short string describing the usage
+
+	// Add flags for the command-line parser.
+	AddFlags(*flag.FlagSet)
+
+	// Filter a single repository.
+	// Return true if the repository should be included.
+	FilterRepository(repository.Repository) (bool)
+}
+
 // Command is the interface used for each command.
 type Command interface {
-	Usage() string // short string usage
+	Usage() string // short string describing the usage
 	Help() string  // help info
 
 	Init(args []string) interface{}
@@ -97,7 +109,7 @@ func readShortcutFromConfiguration(shortcut string, filterMap map[string]string)
 }
 
 // ParseCommandline parses and validates the command-line and return useful structs to continue.
-func ParseCommandline() (command string, args []string, filter repository.RepositoryFilter, ok bool) {
+func ParseCommandline(filters []Filter) (command string, args []string, filter repository.RepositoryFilter, ok bool) {
 	var rootDirectory string
 	var depth int
 	var remote string
@@ -111,11 +123,19 @@ func ParseCommandline() (command string, args []string, filter repository.Reposi
 	preCommandFlags.IntVar(&depth, "d", 0, "maximum depth to search in")
 	preCommandFlags.StringVar(&remote, "r", "", "select only with this remote")
 	preCommandFlags.StringVar(&noremote, "nr", "", "select only without this remote")
-	preCommandFlags.StringVar(&branch, "b", "", "select only with this branch")
-	preCommandFlags.StringVar(&branch, "nb", "", "select only without this branch")
+	//preCommandFlags.StringVar(&branch, "b", "", "select only with this branch")
+	//preCommandFlags.StringVar(&branch, "nb", "", "select only without this branch")
 	preCommandFlags.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
 
+	for _, filter := range filters {
+		filter.AddFlags(preCommandFlags)
+	}
+
 	preCommandFlags.Parse(os.Args[1:])
+
+	for _, filter := range filters {
+		fmt.Printf("filter[%v]\n", filter)
+	}
 
 	if preCommandFlags.NArg() == 0 {
 		return command, args, filter, false
@@ -161,7 +181,7 @@ func ParseCommandline() (command string, args []string, filter repository.Reposi
 func createCommand(vars map[string]string) (Command, bool) {
 	if value, ok := vars["git"]; ok {
 		// add Git command
-		return commands.NewGitProxyCommand(value, vars), true
+		return command.NewGitProxyCommand(value, vars), true
 	}
 	return nil, false
 }

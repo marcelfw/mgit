@@ -8,8 +8,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/marcelfw/mgit/commands"
+	"github.com/marcelfw/mgit/command"
 	"github.com/marcelfw/mgit/config"
+	"github.com/marcelfw/mgit/filter"
 	"github.com/marcelfw/mgit/repository"
 	"log"
 	"os"
@@ -49,17 +50,26 @@ Commands are:
 	fmt.Fprint(os.Stderr, returnTextTable(nil, cmdTable))
 }
 
-// getCommands fetches all commands available for this run.
-func getCommands() (cmds map[string]config.Command) {
-	cmds = make(map[string]config.Command)
+// getFilters returns all filters.
+func getFilters() ([]config.Filter) {
+	filters := make([]config.Filter, 0, 10)
 
-	cmds["help"] = commands.NewHelpCommand()
-	cmds["list"] = commands.NewListCommand()
-	cmds["path"] = commands.NewPathCommand()
+	filters = append(filters, filter.NewBranchFilter())
+
+	return filters
+}
+
+// getCommands fetches all commands available for this run.
+func getCommands() (map[string]config.Command) {
+	cmds := make(map[string]config.Command)
+
+	cmds["help"] = command.NewHelpCommand()
+	cmds["list"] = command.NewListCommand()
+	cmds["path"] = command.NewPathCommand()
 
 	cmds = config.AddConfigCommands(cmds)
 
-	return
+	return cmds
 }
 
 // goRepositories concurrently performs some actions on each repository.
@@ -199,9 +209,10 @@ func main() {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
+	filters := getFilters()
 	commands := getCommands()
 
-	textCommand, args, filter, ok := config.ParseCommandline()
+	textCommand, args, filter, ok := config.ParseCommandline(filters)
 	if ok == false {
 		Usage(commands)
 		return

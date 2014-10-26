@@ -7,6 +7,19 @@ MGit allows you to easily define filters and then run commands on the resulting 
 Useful commands are installed by default. Additional commands can be added into the configuration. All existing commands can be reconfigured in the same configuration.
 Results are collected and presented as one report.
 
+Getting started
+===============
+
+Installation
+------------
+
+git clone https://github.com/marcelfw/mgit.git
+cd mgit
+go get
+go install
+cp bin/mgit /usr/local/bin/mgit
+
+
 Usage examples
 --------------
 

@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package commands implements all internal commands.
+// Package command implements all internal commands.
 // This source returns help.
-package commands
+package command
 
 import (
 	"github.com/marcelfw/mgit/repository"
