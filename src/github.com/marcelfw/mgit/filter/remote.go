@@ -9,6 +9,7 @@ package filter
 import (
 	"flag"
 	"github.com/marcelfw/mgit/repository"
+	"fmt"
 )
 
 type filterRemote struct {
@@ -33,6 +34,10 @@ func (filter filterRemote) AddFlags(flags *flag.FlagSet) (repository.Filter) {
 	filter.noremote = flags.String("noremote", "", "select only without this remote")
 
 	return filter
+}
+
+func (filter filterRemote) Dump() string {
+	return fmt.Sprintf("remote: remote=%s, noremote=%s", *filter.remote, *filter.noremote)
 }
 
 func (filter filterRemote) FilterRepository(repos repository.Repository) bool {

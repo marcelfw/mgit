@@ -39,8 +39,8 @@ func (cmd cmdPath) Init(args []string) (outCmd repository.Command) {
 	return cmd
 }
 
-func (cmd cmdPath) RunConcurrently() bool {
-	return true
+func (cmd cmdPath) IsInteractive() bool {
+	return false
 }
 
 func (cmd cmdPath) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
@@ -55,9 +55,5 @@ func (cmd cmdPath) OutputHeader() []string {
 }
 
 func (cmd cmdPath) Output(repository repository.Repository) interface{} {
-	columns := make([]string, 1, 1)
-
-	columns[0] = repository.GetPath()
-
-	return columns
+	return repository.GetPath()
 }

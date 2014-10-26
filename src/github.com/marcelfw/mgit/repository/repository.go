@@ -16,6 +16,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"text/template"
+	"log"
 )
 
 type Repository struct {
@@ -190,6 +192,7 @@ func (repository *Repository) GetStatusJudgement() string {
 	return "Error"
 }
 
+// PutInfo stores information a command wants to publish later.
 func (repository *Repository) PutInfo(name string, value interface{}) {
 	if repository.info == nil {
 		repository.info = make(map[string]interface{})
@@ -197,6 +200,29 @@ func (repository *Repository) PutInfo(name string, value interface{}) {
 	repository.info[name] = value
 }
 
+// GetInfo retrieves information a command wants to publish.
 func (repository *Repository) GetInfo(name string) interface{} {
 	return repository.info[name]
+}
+
+// ReplaceMacros replaces macros from the arguments.
+func (repository Repository) ReplaceMacros(args []string) (out []string) {
+	out = make([]string, len(args))
+
+	macros := make(map[string]string)
+	macros["Name"] = repository.Name
+	macros["Path"] = repository.GetPath()
+	macros["CurrentBranch"] = repository.GetCurrentBranch()
+
+	for idx, arg := range args {
+		t := template.Must(template.New("arg").Parse(arg))
+		b := new(bytes.Buffer)
+		if err := t.Execute(b, macros); err == nil {
+			out[idx] = b.String()
+		} else {
+			log.Fatal(err)
+		}
+	}
+
+	return out
 }

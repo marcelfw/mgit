@@ -61,8 +61,8 @@ func (cmd cmdList) getHumanTime(atime time.Time) string {
 	return atime.Format("Today, 15:04")
 }
 
-func (cmd cmdList) RunConcurrently() bool {
-	return true
+func (cmd cmdList) IsInteractive() bool {
+	return false
 }
 
 func (cmd cmdList) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {

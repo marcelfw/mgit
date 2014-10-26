@@ -36,8 +36,8 @@ func (cmd cmdHelp) Init(args []string) (outCmd repository.Command) {
 	return nil
 }
 
-func (cmd cmdHelp) RunConcurrently() bool {
-	return true
+func (cmd cmdHelp) IsInteractive() bool {
+	return false
 }
 
 func (cmd cmdHelp) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {

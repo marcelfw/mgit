@@ -27,6 +27,9 @@ const numCachedRepositories = 100
 // number of parallel processors.
 const numDigesters = 5
 
+// git commands non-interactive we automatically pass-through
+var gitPassThru = []string{"status", "fetch", "push", "pull", "log"}
+
 // Usage returns the usage for the program.
 func Usage(commands map[string]repository.Command) {
 	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>] -d <max-depth>
@@ -51,7 +54,7 @@ Commands are:
 }
 
 // getFilters returns all filters.
-func getFilterDefs() ([]repository.FilterDefinition) {
+func getFilterDefs() []repository.FilterDefinition {
 	filters := make([]repository.FilterDefinition, 0, 10)
 
 	filters = append(filters, filter.NewBranchFilter())
@@ -61,12 +64,17 @@ func getFilterDefs() ([]repository.FilterDefinition) {
 }
 
 // getCommands fetches all commands available for this run.
-func getCommands() (map[string]repository.Command) {
+func getCommands() map[string]repository.Command {
 	cmds := make(map[string]repository.Command)
 
 	cmds["help"] = command.NewHelpCommand()
+	cmds["echo"] = command.NewEchoCommand()
 	cmds["list"] = command.NewListCommand()
 	cmds["path"] = command.NewPathCommand()
+
+	for _, gitCommand := range gitPassThru {
+		cmds[gitCommand] = command.NewGitProxyCommand(gitCommand, map[string]string{})
+	}
 
 	cmds = config.AddConfigCommands(cmds)
 
@@ -76,7 +84,7 @@ func getCommands() (map[string]repository.Command) {
 // goRepositories concurrently performs some actions on each repository.
 func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command repository.Command) {
 	digesters := numDigesters
-	if !command.RunConcurrently() {
+	if command.IsInteractive() {
 		digesters = 1
 	}
 
@@ -188,6 +196,8 @@ func runCommand(command repository.Command, filter repository.RepositoryFilter) 
 		output := command.Output(repository)
 
 		switch output.(type) {
+		case string:
+			rows = append(rows, []string{output.(string)})
 		case []string:
 			rows = append(rows, output.([]string))
 		case [][]string:

@@ -12,7 +12,7 @@ import (
 )
 
 type cmdGitProxy struct {
-	concurrent bool
+	interactive bool
 
 	command string
 	args []string
@@ -37,10 +37,9 @@ func NewGitProxyCommand(command string, vars map[string]string) cmdGitProxy {
 		cmd.help = value
 	}
 
-	cmd.concurrent = true
-	if value, ok := vars["concurrent"]; ok {
-		if value == "no" || value == "0" || value == "false" {
-			cmd.concurrent = false
+	if value, ok := vars["interactive"]; ok {
+		if value == "yes" || value == "1" || value == "true" {
+			cmd.interactive = true
 		}
 	}
 
@@ -60,8 +59,8 @@ func (cmd cmdGitProxy) Init(args []string) (outCmd repository.Command) {
 	return cmd
 }
 
-func (cmd cmdGitProxy) RunConcurrently() bool {
-	return cmd.concurrent
+func (cmd cmdGitProxy) IsInteractive() bool {
+	return cmd.interactive
 }
 
 func (cmd cmdGitProxy) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {

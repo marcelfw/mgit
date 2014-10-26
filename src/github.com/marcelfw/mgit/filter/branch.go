@@ -9,6 +9,7 @@ package filter
 import (
 	"flag"
 	"github.com/marcelfw/mgit/repository"
+	"fmt"
 )
 
 type filterBranch struct {
@@ -33,6 +34,10 @@ func (filter filterBranch) AddFlags(flags *flag.FlagSet) (repository.Filter) {
 	filter.nobranch = flags.String("nobranch", "", "select only without this branch")
 
 	return filter
+}
+
+func (filter filterBranch) Dump() string {
+	return fmt.Sprintf("branch: branch=%s, nobranch=%s", *filter.branch, *filter.nobranch)
 }
 
 func (filter filterBranch) FilterRepository(repos repository.Repository) bool {

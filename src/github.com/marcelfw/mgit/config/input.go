@@ -16,6 +16,7 @@ import (
 	"os/user"
 	"regexp"
 	"strings"
+	"strconv"
 )
 
 
@@ -59,17 +60,7 @@ func readShortcutFromConfiguration(shortcut string) (filterMap map[string]string
 			match := r.FindStringSubmatch(name)
 			if len(match) >= 2 && match[1] == shortcut {
 				for key, value := range vars {
-					lkey := strings.ToLower(key)
-					switch {
-					case lkey == "rootdirectory":
-						filterMap["rootDirectory"] = value
-					case lkey == "depth":
-						filterMap["depth"] = value
-					case lkey == "remote":
-						filterMap["remote"] = value
-					case lkey == "branch":
-						filterMap["branch"] = value
-					}
+					filterMap[strings.ToLower(key)] = value
 				}
 
 				return filterMap, true
@@ -100,6 +91,7 @@ func ParseCommandline(filterDefs []repository.FilterDefinition) (command string,
 		filters = append(filters, filterDef.AddFlags(mgitFlags))
 	}
 
+	mgitFlags.Parse(os.Args[1:])
 
 	var filterMap map[string]string
 
@@ -108,32 +100,23 @@ func ParseCommandline(filterDefs []repository.FilterDefinition) (command string,
 		if !ok {
 			return command, args, repositoryFilter, false
 		}
-
-		shortcutArgs := make([]string, 0, 10)
-		mgitFlags.VisitAll(func(flag *flag.Flag){
-			if value, ok := filterMap[flag.Name]; ok {
-				fmt.Printf("There is a shortcut for [%v] '%s'\n", flag, value)
-				shortcutArgs = append(shortcutArgs, "-" + flag.Name)
-				shortcutArgs = append(shortcutArgs, value)
-			}
-		})
-
-		mgitFlags.Parse(shortcutArgs)
 	}
 
-
-	mgitFlags.Parse(os.Args[1:])
 
 	if mgitFlags.NArg() == 0 {
 		return command, args, repositoryFilter, false
 	}
 
+	mgitFlags.VisitAll(func(flag *flag.Flag){
+		if value, ok := filterMap[flag.Name]; ok {
+			if flag.Value.String() == "" {
+				flag.Value.Set(value)
+			}
+		}
+	})
 
-
-
-	/*
 	if rootDirectory == "" {
-		if value, ok := filterMap["rootDirectory"]; ok {
+		if value, ok := filterMap["root"]; ok {
 			rootDirectory = value
 		}
 	}
@@ -144,7 +127,6 @@ func ParseCommandline(filterDefs []repository.FilterDefinition) (command string,
 			}
 		}
 	}
-	*/
 
 	repositoryFilter = repository.NewRepositoryFilter(rootDirectory, depth, filters)
 

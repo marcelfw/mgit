@@ -19,7 +19,9 @@ type FilterDefinition interface {
 
 // Filter is the actual interface of a repository filter.
 type Filter interface {
-	// Return true if the repository should be included.
+	Dump() string
+
+// Return true if the repository should be included.
 	FilterRepository(Repository) (bool)
 }
 
@@ -30,8 +32,8 @@ type Command interface {
 
 	Init(args []string) (Command)
 
-	// Return true if run can be executed concurrently.
-	RunConcurrently() bool
+	// Return true if command can be interactive.
+	IsInteractive() bool
 
 	// Run the actual command.
 	Run(Repository) (Repository, bool)
