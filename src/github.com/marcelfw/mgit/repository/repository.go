@@ -128,6 +128,27 @@ func (repository Repository) ExecGit(args ...string) (result string, ok bool) {
 	return "", false
 }
 
+func (repository Repository) ExecGitInteractive(args ...string) (ok bool) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = repository.path
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		log.Printf("Command.Start returned err: %v!", err)
+		return false
+	}
+
+	if err := cmd.Wait(); err != nil {
+		log.Printf("Command.Wait returned err: %v!", err)
+		return false
+	}
+
+	return true
+}
+
+
 // retrieveBasics retrieves the current branch, status.
 func (repository *Repository) RetrieveBasics() {
 	if branch, ok := repository.ExecGit("rev-parse", "--abbrev-ref", "HEAD"); ok {

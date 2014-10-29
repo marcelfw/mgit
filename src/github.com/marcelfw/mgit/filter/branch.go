@@ -42,8 +42,11 @@ func (filter filterBranch) Dump() string {
 
 func (filter filterBranch) FilterRepository(repos repository.Repository) bool {
 	if *filter.branch != "" {
-		return repos.IsBranch(*filter.branch)
-	} else if *filter.nobranch != "" {
+		if repos.IsBranch(*filter.branch) {
+			return true
+		}
+	}
+	if *filter.nobranch != "" {
 		return !repos.IsBranch(*filter.nobranch)
 	}
 	

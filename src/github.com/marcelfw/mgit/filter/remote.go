@@ -42,8 +42,11 @@ func (filter filterRemote) Dump() string {
 
 func (filter filterRemote) FilterRepository(repos repository.Repository) bool {
 	if *filter.remote != "" {
-		return repos.IsRemote(*filter.remote)
-	} else if *filter.noremote != "" {
+		if repos.IsRemote(*filter.remote) {
+			return true
+		}
+	}
+	if *filter.noremote != "" {
 		return !repos.IsRemote(*filter.noremote)
 	}
 

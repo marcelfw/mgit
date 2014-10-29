@@ -73,7 +73,7 @@ func readShortcutFromConfiguration(shortcut string) (filterMap map[string]string
 }
 
 // ParseCommandline parses and validates the command-line and return useful structs to continue.
-func ParseCommandline(filterDefs []repository.FilterDefinition) (command string, args []string, repositoryFilter repository.RepositoryFilter, ok bool) {
+func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition) (command string, args []string, repositoryFilter repository.RepositoryFilter, ok bool) {
 	var rootDirectory string
 	var depth int
 	var shortcut string
@@ -84,14 +84,14 @@ func ParseCommandline(filterDefs []repository.FilterDefinition) (command string,
 	// These are truly hard-coded for now.
 	mgitFlags.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
 	mgitFlags.StringVar(&rootDirectory, "root", "", "set root directory")
-	mgitFlags.IntVar(&depth, "d", 0, "maximum depth to search in")
+	mgitFlags.IntVar(&depth, "depth", 0, "maximum depth to search in")
 
 	filters := make([]repository.Filter, 0, len(filterDefs))
 	for _, filterDef := range filterDefs {
 		filters = append(filters, filterDef.AddFlags(mgitFlags))
 	}
 
-	mgitFlags.Parse(os.Args[1:])
+	mgitFlags.Parse(osArgs)
 
 	var filterMap map[string]string
 
@@ -118,6 +118,9 @@ func ParseCommandline(filterDefs []repository.FilterDefinition) (command string,
 	if rootDirectory == "" {
 		if value, ok := filterMap["root"]; ok {
 			rootDirectory = value
+		}
+		if rootDirectory == "" {
+			rootDirectory = "."
 		}
 	}
 	if depth == 0 {

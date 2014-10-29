@@ -64,9 +64,18 @@ func (cmd cmdGitProxy) IsInteractive() bool {
 }
 
 func (cmd cmdGitProxy) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
-	result, ok := repository.ExecGit(cmd.args...)
+	var ok bool
+	if cmd.interactive {
+		ok = repository.ExecGitInteractive(cmd.args...)
 
-	repository.PutInfo("proxy."+cmd.command, strings.TrimSpace(result))
+		repository.PutInfo("proxy."+cmd.command, "(interactive command ran)")
+	} else {
+		var result string
+
+		result, ok = repository.ExecGit(cmd.args...)
+
+		repository.PutInfo("proxy."+cmd.command, strings.TrimSpace(result))
+	}
 
 	return repository, ok
 }
