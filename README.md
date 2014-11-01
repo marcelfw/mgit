@@ -3,21 +3,20 @@ MGit: Multiple Git repository handler
 
 MGit is a tool to run Git commands for multiple repositories simultaneously.
 
-MGit allows you to easily define filters and then run commands on the resulting repository list. Filters can be configured in a configuration file or you can manually enter them on the command-line.
-Useful commands are installed by default. Additional commands can be added into the configuration. All existing commands can be reconfigured in the same configuration.
+MGit allows you to easily define filters and then run commands on the resulting repository list. Filters can be
+configured in a file or you can manually enter them on the command-line.
+Useful commands are installed by default. Additional commands can be added into the configuration. All existing
+commands can be reconfigured in the same configuration.
 Results are collected and presented as one report.
 
 Getting started
 ===============
 
-Installation
-------------
-
-(work in progress)
+There is no binary release yet.
 
 
-Building
---------
+Building from source
+--------------------
 
 git clone https://github.com/marcelfw/mgit.git
 cd mgit
@@ -45,7 +44,7 @@ Usage examples
     sh ./git-create.sh
     rm ./git-create.sh
     exit
-    # 3. Add remote "mynas" to all repository which don't have it yet.
+    # 3. Add remote "mynas" to all repositories which don't have it yet.
     mgit -noremote mynas remote add mynas "ssh://git@mynas/home/git/{{ .Name }}.git"
     # 4. Push everything.
     mgit -remote mynas push
