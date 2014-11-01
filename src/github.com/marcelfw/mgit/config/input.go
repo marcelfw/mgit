@@ -73,10 +73,11 @@ func readShortcutFromConfiguration(shortcut string) (filterMap map[string]string
 }
 
 // ParseCommandline parses and validates the command-line and return useful structs to continue.
-func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition) (command string, args []string, repositoryFilter repository.RepositoryFilter, ok bool) {
+func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition) (command string, cmdInteractive bool, args []string, repositoryFilter repository.RepositoryFilter, ok bool) {
 	var rootDirectory string
 	var depth int
 	var shortcut string
+	var interactive bool
 
 
 	mgitFlags := flag.NewFlagSet("mgitFlags", flag.ContinueOnError)
@@ -85,6 +86,7 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	mgitFlags.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
 	mgitFlags.StringVar(&rootDirectory, "root", "", "set root directory")
 	mgitFlags.IntVar(&depth, "depth", 0, "maximum depth to search in")
+	mgitFlags.BoolVar(&interactive, "i", false, "run command interactively")
 
 	filters := make([]repository.Filter, 0, len(filterDefs))
 	for _, filterDef := range filterDefs {
@@ -98,13 +100,13 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	if shortcut != "" {
 		filterMap, ok = readShortcutFromConfiguration(shortcut)
 		if !ok {
-			return command, args, repositoryFilter, false
+			return command, false, args, repositoryFilter, false
 		}
 	}
 
 
 	if mgitFlags.NArg() == 0 {
-		return command, args, repositoryFilter, false
+		return command, false, args, repositoryFilter, false
 	}
 
 	mgitFlags.VisitAll(func(flag *flag.Flag){
@@ -130,6 +132,9 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 			}
 		}
 	}
+	if interactive {
+		cmdInteractive = true
+	}
 
 	repositoryFilter = repository.NewRepositoryFilter(rootDirectory, depth, filters)
 
@@ -137,7 +142,7 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	command = args[0]
 	args = args[1:]
 
-	return command, args, repositoryFilter, true
+	return command, cmdInteractive, args, repositoryFilter, true
 }
 
 // createCommand creates a command based on a configuration section.

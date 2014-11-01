@@ -202,15 +202,36 @@ func (repository *Repository) GetCurrentBranch() string {
 }
 
 // GetStatusJudgement judges the current status.
+// Basically just shows if we have staged, unstaged or untracked files.
 func (repository *Repository) GetStatusJudgement() string {
-	switch {
-	case repository.status == "":
-		return "Ok"
-	case repository.status != "":
-		return "Changes"
+	var staged bool
+	var unstaged bool
+	var untracked bool
+	lines := strings.Split(repository.status, "\n")
+	for _, line := range lines {
+		if len(line) >= 2 {
+			switch {
+			case line[0] == '?' || line[1] == '?':
+				untracked = true
+			case line[0] != ' ':
+				staged = true
+			case line[1] != ' ':
+				unstaged = true
+			}
+		}
+	}
+	judgements := make([]string, 0, 3)
+	if staged {
+		judgements = append(judgements, "Staged")
+	}
+	if unstaged {
+		judgements = append(judgements, "Unstaged")
+	}
+	if untracked {
+		judgements = append(judgements, "Untracked")
 	}
 
-	return "Error"
+	return strings.Join(judgements, ", ")
 }
 
 // PutInfo stores information a command wants to publish later.

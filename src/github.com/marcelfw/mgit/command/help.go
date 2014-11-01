@@ -43,11 +43,3 @@ func (cmd cmdHelp) IsInteractive() bool {
 func (cmd cmdHelp) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
 	return repository, false
 }
-
-func (cmd cmdHelp) OutputHeader() []string {
-	return nil
-}
-
-func (cmd cmdHelp) Output(repository repository.Repository) interface{} {
-	return nil
-}

@@ -29,12 +29,14 @@ const numDigesters = 5
 
 // git commands non-interactive we automatically pass-through
 var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote"}
-var gitInteractivePassThru = []string{"add", "pull", "commit"}
+
+// git commands which might be interactive
+var gitInteractivePassThru = []string{}
 
 // Usage returns the usage for the program.
 func Usage(commands map[string]repository.Command) {
 	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>] -d <max-depth>
-            [-b <branch>] [-r <remote>] [-nb <no-branch>] [-nr <no-remote>]
+            [-branch <branch>] [-remote <remote>] [-nobranch <no-branch>] [-noremote <no-remote>]
             <command> [<args>]
 
 Commands are:
@@ -194,26 +196,28 @@ func runCommand(command repository.Command, filter repository.RepositoryFilter) 
 	// Sort repositories for logical output.
 	sort.Sort(repository.ByIndex(repositories))
 
-	// Simplify repository output to rows.
-	rows := make([][]string, 0, len(repositories))
-	for _, repository := range repositories {
-		output := command.Output(repository)
+	// Repository rows output.
+	if rowOutputCommand, ok := command.(repository.RowOutputCommand); ok {
+		rows := make([][]string, 0, len(repositories))
+		for _, repository := range repositories {
+			output := rowOutputCommand.Output(repository)
 
-		switch output.(type) {
-		case string:
-			rows = append(rows, []string{output.(string)})
-		case []string:
-			rows = append(rows, output.([]string))
-		case [][]string:
-			rows = append(rows, output.([][]string)...)
-		default:
-			log.Fatal("Unknown return type.")
+			switch output.(type) {
+			case string:
+				rows = append(rows, []string{output.(string)})
+			case []string:
+				rows = append(rows, output.([]string))
+			case [][]string:
+				rows = append(rows, output.([][]string)...)
+			default:
+				log.Fatal("Unknown return type.")
+			}
+
 		}
 
+		// Output nicely.
+		fmt.Print(returnTextTable(rowOutputCommand.OutputHeader(), rows))
 	}
-
-	// Output nicely.
-	fmt.Print(returnTextTable(command.OutputHeader(), rows))
 }
 
 func main() {
@@ -227,7 +231,7 @@ func main() {
 	filterDefs := getFilterDefs()
 	commands := getCommands()
 
-	textCommand, args, filter, ok := config.ParseCommandline(os.Args[1:], filterDefs)
+	textCommand, cmdInteractive, args, filter, ok := config.ParseCommandline(os.Args[1:], filterDefs)
 	if ok == false {
 		Usage(commands)
 		return
@@ -237,6 +241,12 @@ func main() {
 	if curCommand, ok = commands[textCommand]; ok == false {
 		Usage(commands)
 		return
+	}
+
+	if cmdInteractive {
+		if iCommand, ok := curCommand.(repository.InteractiveCommand); ok {
+			iCommand.ForceInteractive()
+		}
 	}
 
 	// Let the command initialize itself with the arguments.

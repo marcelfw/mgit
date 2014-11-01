@@ -63,6 +63,10 @@ func (cmd cmdGitProxy) IsInteractive() bool {
 	return cmd.interactive
 }
 
+func (cmd cmdGitProxy) ForceInteractive() {
+	cmd.interactive = true
+}
+
 func (cmd cmdGitProxy) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
 	var ok bool
 	if cmd.interactive {

@@ -32,12 +32,20 @@ type Command interface {
 
 	Init(args []string) (Command)
 
-	// Return true if command can be interactive.
-	IsInteractive() bool
+	IsInteractive() bool // Return true if command can be interactive.
 
 	// Run the actual command.
 	Run(Repository) (Repository, bool)
-
-	OutputHeader() []string
-	Output(Repository) interface{}
 }
+
+// RowOutputCommand is a command which outputs rows.
+type RowOutputCommand interface {
+	OutputHeader() []string // Column headers.
+	Output(Repository) interface{} //
+}
+
+// InteractiveCommand is a special command that could be run interactively.
+type InteractiveCommand interface {
+	ForceInteractive() // Force command to be run interactive
+}
+
