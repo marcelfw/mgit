@@ -1,17 +1,4 @@
 // Copyright (c) 2014 Marcel Wouters
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-// documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
-// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-// permit persons to whom the Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
-// Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-// WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
-// OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
-// OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Package main glues everything together :-)
 package main
@@ -207,7 +194,7 @@ func runCommand(command repository.Command, filter repository.RepositoryFilter) 
 	// Sort repositories for logical output.
 	sort.Sort(repository.ByIndex(repositories))
 
-	// Repository rows output.
+	// Repository output.
 	if rowOutputCommand, ok := command.(repository.RowOutputCommand); ok {
 		rows := make([][]string, 0, len(repositories))
 		for _, repository := range repositories {
@@ -227,7 +214,26 @@ func runCommand(command repository.Command, filter repository.RepositoryFilter) 
 		}
 
 		// Output nicely.
-		fmt.Print(returnTextTable(rowOutputCommand.OutputHeader(), rows))
+		fmt.Print(returnTextTable(rowOutputCommand.Header(), rows))
+	} else if lineOutputCommand, ok := command.(repository.LineOutputCommand); ok {
+		output := ""
+
+		header := lineOutputCommand.Header()
+		if header != "" {
+			output += header + "\n"
+		}
+		for _, repository := range repositories {
+			line := lineOutputCommand.Output(repository)
+			if line != "" {
+				output += line + "\n"
+			}
+		}
+		footer := lineOutputCommand.Footer()
+		if footer != "" {
+			output += footer + "\n"
+		}
+
+		fmt.Print(output)
 	}
 }
 
