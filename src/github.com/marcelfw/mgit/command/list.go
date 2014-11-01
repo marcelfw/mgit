@@ -94,6 +94,9 @@ func (cmd cmdList) Output(repository repository.Repository) interface{} {
 	columns := make([]string, 5, 5)
 
 	columns[0] = repository.Name
+	if columns[0] == "" {
+		columns[0] = "(root)"
+	}
 	columns[1] = repository.GetCurrentBranch()
 	columns[2] = repository.GetStatusJudgement()
 	columns[3] = repository.GetInfo("list.time").(string)

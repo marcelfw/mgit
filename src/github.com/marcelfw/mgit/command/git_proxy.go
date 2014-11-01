@@ -78,14 +78,17 @@ func (cmd cmdGitProxy) ForceInteractive() {
 
 func (cmd cmdGitProxy) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
 	var ok bool
+
+	args := repository.ReplaceMacros(cmd.args)
+
 	if cmd.interactive {
-		ok = repository.ExecGitInteractive(cmd.args...)
+		ok = repository.ExecGitInteractive(args...)
 
 		repository.PutInfo("proxy."+cmd.command, "(interactive command ran)")
 	} else {
 		var result string
 
-		result, ok = repository.ExecGit(cmd.args...)
+		result, ok = repository.ExecGit(args...)
 
 		repository.PutInfo("proxy."+cmd.command, strings.TrimSpace(result))
 	}
@@ -104,6 +107,10 @@ func (cmd cmdGitProxy) Header() []string {
 
 // Output returns the result of the command
 func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
+	name := repository.Name
+	if name == "" {
+		name = "(root)"
+	}
 
 	output := repository.GetInfo("proxy."+cmd.command).(string)
 	lines := strings.Split(output, "\n")
@@ -111,12 +118,12 @@ func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
 	switch {
 	case len(lines) == 0 || (len(lines) == 1 && output == ""):
 		columns := make([]string, 2, 2)
-		columns[0] = repository.Name
+		columns[0] = name
 		columns[1] = "<>"
 		return columns
 	case len(lines) == 1:
 		columns := make([]string, 2, 2)
-		columns[0] = repository.Name
+		columns[0] = name
 		columns[1] = output
 		return columns
 	default:
@@ -126,7 +133,7 @@ func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
 			var pre string // pre is used to hopefully make it easier to see the lines belong together
 			switch {
 			case idx == 0:
-				columns[0] = repository.Name
+				columns[0] = name
 				pre = "   "
 			case idx == len(lines) - 1:
 				pre = "\\_ "

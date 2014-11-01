@@ -48,10 +48,6 @@ func NewRepository(index int, name, gitpath string) (repository Repository, ok b
 	repository.Name = name
 	repository.path = path.Dir(gitpath)
 
-	if name == "" {
-		repository.Name = "(root)"
-	}
-
 	if fi, err := os.Stat(gitpath); err == nil {
 		switch {
 		case fi.IsDir():
@@ -245,7 +241,7 @@ func (repository *Repository) GetInfo(name string) interface{} {
 	return repository.info[name]
 }
 
-// ReplaceMacros replaces macros from the arguments.
+// ReplaceMacros replaces macros from the arguments and returns the strings with replacements.
 func (repository Repository) ReplaceMacros(args []string) (out []string) {
 	out = make([]string, len(args))
 

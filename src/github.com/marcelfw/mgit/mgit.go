@@ -28,9 +28,6 @@ const numDigesters = 5
 // git commands non-interactive we automatically pass-through
 var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote"}
 
-// git commands which might be interactive
-var gitInteractivePassThru = []string{}
-
 // Usage returns the usage for the program.
 func Usage(commands map[string]repository.Command) {
 	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>] -d <max-depth>
@@ -75,9 +72,6 @@ func getCommands() map[string]repository.Command {
 
 	for _, gitCommand := range gitPassThru {
 		cmds[gitCommand] = command.NewGitProxyCommand(gitCommand, map[string]string{})
-	}
-	for _, gitCommand := range gitInteractivePassThru {
-		cmds["i"+gitCommand] = command.NewGitProxyCommand(gitCommand, map[string]string{"interactive":"true"})
 	}
 
 	cmds = config.AddConfigCommands(cmds)
