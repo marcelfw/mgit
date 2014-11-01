@@ -9,13 +9,13 @@ import (
 	"fmt"
 	go_ini "github.com/vaughan0/go-ini"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
 	"strings"
 	"text/template"
-	"log"
 )
 
 type Repository struct {
@@ -28,8 +28,8 @@ type Repository struct {
 	currentBranch string // store the current branch
 	status        string // store the porcelain status
 
-	remotes  []string // remote names
-	branches []string // branch names
+	remotes  map[string]string // remotes
+	branches []string          // branch names
 
 	info map[string]interface{} // let commands store info from a run here
 }
@@ -72,16 +72,19 @@ func NewRepository(index int, name, gitpath string) (repository Repository, ok b
 
 // findRemotes fills the remotes array with all the names (of the remotes).
 func (repository *Repository) updateRemotes() {
-	remotes := make([]string, 0, 10)
+	remotes := make(map[string]string)
 
 	if fi, err := os.Stat(repository.gitRoot + "/config"); err == nil && !fi.IsDir() {
 		config, err := go_ini.LoadFile(repository.gitRoot + "/config")
 		if err == nil {
 			r, _ := regexp.Compile("remote \"(.+)\"")
-			for name, _ := range config {
+			for name, vars := range config {
 				match := r.FindStringSubmatch(name)
 				if len(match) >= 2 {
-					remotes = append(remotes, match[1])
+					name := match[1]
+					if value, ok := vars["url"]; ok {
+						remotes[name] = value
+					}
 				}
 			}
 		}
@@ -142,7 +145,6 @@ func (repository Repository) ExecGitInteractive(args ...string) (ok bool) {
 	return true
 }
 
-
 // retrieveBasics retrieves the current branch, status.
 func (repository *Repository) RetrieveBasics() {
 	if branch, ok := repository.ExecGit("rev-parse", "--abbrev-ref", "HEAD"); ok {
@@ -177,8 +179,14 @@ func (repository *Repository) IsBranch(branch string) bool {
 
 // IsRemote returns true if remote is a remote.
 func (repository *Repository) IsRemote(remote string) bool {
+	_, ok := repository.remotes[remote]
+	return ok
+}
+
+// RemotePathContains returns true if remote path contains search.
+func (repository *Repository) RemotePathContains(search string) bool {
 	for _, r := range repository.remotes {
-		if r == remote {
+		if strings.Contains(r, search) {
 			return true
 		}
 	}

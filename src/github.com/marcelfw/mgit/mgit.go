@@ -57,6 +57,7 @@ func getFilterDefs() []repository.FilterDefinition {
 
 	filters = append(filters, filter.NewBranchFilter())
 	filters = append(filters, filter.NewRemoteFilter())
+	filters = append(filters, filter.NewRemotePathFilter())
 
 	return filters
 }

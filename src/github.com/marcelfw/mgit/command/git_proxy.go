@@ -6,18 +6,18 @@ package command
 
 import (
 	"github.com/marcelfw/mgit/repository"
-	"strings"
 	"os/exec"
+	"strings"
 )
 
 type cmdGitProxy struct {
 	interactive bool
 
 	command string
-	args []string
+	args    []string
 
 	usage string
-	help string
+	help  string
 }
 
 func NewGitProxyCommand(command string, vars map[string]string) cmdGitProxy {
@@ -112,7 +112,7 @@ func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
 		name = "(root)"
 	}
 
-	output := repository.GetInfo("proxy."+cmd.command).(string)
+	output := repository.GetInfo("proxy." + cmd.command).(string)
 	lines := strings.Split(output, "\n")
 
 	switch {
@@ -135,7 +135,7 @@ func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
 			case idx == 0:
 				columns[0] = name
 				pre = "   "
-			case idx == len(lines) - 1:
+			case idx == len(lines)-1:
 				pre = "\\_ "
 			default:
 				pre = "|  "
