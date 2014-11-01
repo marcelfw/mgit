@@ -1,6 +1,17 @@
-// Copyright 2014 Marcel Wouters. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Copyright (c) 2014 Marcel Wouters
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+// documentation files (the "Software"), to deal in the Software without restriction, including without limitation the
+// rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the
+// Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+// WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS
+// OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+// OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Package main glues everything together :-)
 package main
@@ -53,7 +64,7 @@ Commands are:
 		cmdTable = append(cmdTable, usage)
 	}
 
-	fmt.Fprint(os.Stderr, returnTextTable(nil, cmdTable))
+	fmt.Fprint(os.Stdout, returnTextTable(nil, cmdTable))
 }
 
 // getFilters returns all filters.
@@ -87,7 +98,7 @@ func getCommands() map[string]repository.Command {
 	return cmds
 }
 
-// goRepositories concurrently performs some actions on each repository.
+// goRepositories concurrently performs an action on each repository.
 func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command repository.Command) {
 	digesters := numDigesters
 	if command.IsInteractive() {
@@ -259,7 +270,7 @@ func main() {
 	if cmdType := reflect.TypeOf(curCommand); cmdType.Name() == "cmdHelp" {
 		if len(args) == 1 {
 			if helpCommand, ok := commands[args[0]]; ok == true {
-				fmt.Fprintln(os.Stderr, helpCommand.Help())
+				fmt.Fprintln(os.Stdout, helpCommand.Help())
 				return
 			}
 		}
