@@ -23,13 +23,16 @@ type Filter interface {
 	FilterRepository(Repository) (bool)
 }
 
-// Command is the interface used for each command.
+// Command is shared interface used for each command.
 type Command interface {
 	Usage() string // short string describing the usage
 	Help() string  // help info
 
 	Init(args []string) (Command)
+}
 
+// RepositoryCommand is the interface used commands that act on repositories.
+type RepositoryCommand interface {
 	IsInteractive() bool // Return true if command can be interactive.
 
 	// Run the actual command.
@@ -39,6 +42,7 @@ type Command interface {
 // RowOutputCommand is a command which outputs rows.
 type RowOutputCommand interface {
 	Header() []string // Column headers.
+
 	Output(Repository) interface{} // [][]string, []string or string
 }
 
@@ -55,3 +59,7 @@ type InteractiveCommand interface {
 	ForceInteractive() // Force command to be run interactive
 }
 
+// InfoCommand is a special command that shows internal info.
+type InfoCommand interface {
+	Output(map[string]Command, string) string // commands and version string
+}

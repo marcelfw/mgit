@@ -40,6 +40,13 @@ func (a ByIndex) Len() int           { return len(a) }
 func (a ByIndex) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByIndex) Less(i, j int) bool { return a[i].index < a[j].index }
 
+var remoteRegexp *regexp.Regexp
+
+// init
+func init() {
+	remoteRegexp = regexp.MustCompile("remote \"(.+)\"")
+}
+
 // NewRepository returns a Repository structure describing the repository.
 // If there is an error, ok will be false.
 func NewRepository(index int, name, gitpath string) (repository Repository, ok bool) {
@@ -77,9 +84,8 @@ func (repository *Repository) updateRemotes() {
 	if fi, err := os.Stat(repository.gitRoot + "/config"); err == nil && !fi.IsDir() {
 		config, err := go_ini.LoadFile(repository.gitRoot + "/config")
 		if err == nil {
-			r, _ := regexp.Compile("remote \"(.+)\"")
 			for name, vars := range config {
-				match := r.FindStringSubmatch(name)
+				match := remoteRegexp.FindStringSubmatch(name)
 				if len(match) >= 2 {
 					name := match[1]
 					if value, ok := vars["url"]; ok {

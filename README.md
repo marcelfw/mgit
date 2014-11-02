@@ -26,8 +26,8 @@ go build src/github.com/marcelfw/mgit
 Usage examples
 --------------
 
-    # Copy your development code to your laptop.
-    mgit -branch develop push laptop
+    # Copy all your development code branches to your laptop.
+    mgit -branch develop -remote laptop push laptop
 
     # Refresh all customer code on your machine.
     mgit -root ~/customer pull
@@ -36,17 +36,11 @@ Usage examples
     mgit -remotepath github.com/username pull
 
     # Mirror all repositories to your NAS.
-    # 1. Create a list of commands to set up remotes to push/pull to/from.
-    mgit -noremote mynas echo "mkdir -p {{ .Name }}.git ; cd {{ .Name }}.git ; git init --bare" > git-create.sh
-    # 2. Run git-create script in correct location on your NAS.
-    scp git-create.sh git@mynas
-    ssh git@mynas
-    sh ./git-create.sh
-    rm ./git-create.sh
-    exit
-    # 3. Add remote "mynas" to all repositories which don't have it yet.
+    # 1. Create script and feed into NAS with ssh (shell should allow for git init).
+    mgit -noremote mynas echo "mkdir -p {{ .Name }}.git ; git init --bare {{ .Name }}.git" | ssh git@mynas
+    # 2. Add remote "mynas" to all repositories which don't have it yet.
     mgit -noremote mynas remote add mynas "ssh://git@mynas/home/git/{{ .Name }}.git"
-    # 4. Push everything.
+    # 3. Push everything.
     mgit -remote mynas push
 
 

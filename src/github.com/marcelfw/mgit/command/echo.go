@@ -49,6 +49,10 @@ func (cmd cmdEcho) Header() []string {
 	return nil
 }
 
-func (cmd cmdEcho) Output(repository repository.Repository) interface{} {
+func (cmd cmdEcho) Footer() []string {
+	return nil
+}
+
+func (cmd cmdEcho) Output(repository repository.Repository) string {
 	return strings.Join(repository.ReplaceMacros(cmd.args), " ")
 }

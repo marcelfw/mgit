@@ -1,7 +1,7 @@
 // Copyright (c) 2014 Marcel Wouters
 
 // Package command implements all internal commands.
-// This source returns the last matching root directory of a repository search string.
+// This source returns the matching directory of a repository search string.
 package command
 
 import (

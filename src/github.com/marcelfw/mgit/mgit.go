@@ -12,12 +12,14 @@ import (
 	"github.com/marcelfw/mgit/repository"
 	"log"
 	"os"
-	"reflect"
 	"runtime/pprof"
 	"sort"
 	"strings"
 	"sync"
 )
+
+// current version
+var version = "0.1"
 
 // channel size for pushing repositories
 const numCachedRepositories = 100
@@ -70,6 +72,7 @@ func getCommands() map[string]repository.Command {
 	cmds["echo"] = command.NewEchoCommand()
 	cmds["list"] = command.NewListCommand()
 	cmds["path"] = command.NewPathCommand()
+	cmds["version"] = command.NewVersionCommand()
 
 	for _, gitCommand := range gitPassThru {
 		cmds[gitCommand] = command.NewGitProxyCommand(gitCommand, map[string]string{})
@@ -81,7 +84,7 @@ func getCommands() map[string]repository.Command {
 }
 
 // goRepositories concurrently performs an action on each repository.
-func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command repository.Command) {
+func goRepositories(inChannel chan repository.Repository, outChannel chan repository.Repository, command repository.RepositoryCommand) {
 	digesters := numDigesters
 	if command.IsInteractive() {
 		digesters = 1
@@ -169,7 +172,7 @@ func returnTextTable(header []string, rows [][]string) string {
 }
 
 // Run the actual command with the filter.
-func runCommand(command repository.Command, filter repository.RepositoryFilter) {
+func runCommand(command repository.RepositoryCommand, filter repository.RepositoryFilter) {
 	// Find repositories which match filter and put on inchannel.
 	inChannel := repository.FindRepositories(filter, numCachedRepositories)
 
@@ -243,7 +246,7 @@ func main() {
 	filterDefs := getFilterDefs()
 	commands := getCommands()
 
-	textCommand, cmdInteractive, args, filter, ok := config.ParseCommandline(os.Args[1:], filterDefs)
+	textCommand, flagInteractive, args, filter, ok := config.ParseCommandline(os.Args[1:], filterDefs)
 	if ok == false {
 		Usage(commands)
 		return
@@ -255,7 +258,7 @@ func main() {
 		return
 	}
 
-	if cmdInteractive {
+	if flagInteractive {
 		if iCommand, ok := curCommand.(repository.InteractiveCommand); ok {
 			iCommand.ForceInteractive()
 		}
@@ -268,6 +271,7 @@ func main() {
 		curCommand = newCommand
 	}
 
+	/*
 	if cmdType := reflect.TypeOf(curCommand); cmdType.Name() == "cmdHelp" {
 		if len(args) == 1 {
 			if helpCommand, ok := commands[args[0]]; ok == true {
@@ -278,7 +282,14 @@ func main() {
 		Usage(commands)
 		return
 	}
+	*/
 
-	// Run the actual command.
-	runCommand(curCommand, filter)
+	if repositoryCommand, ok := curCommand.(repository.RepositoryCommand); ok {
+		// Run the actual command.
+		runCommand(repositoryCommand, filter)
+	} else if infoCommand, ok := curCommand.(repository.InfoCommand); ok {
+		fmt.Fprintln(os.Stdout, infoCommand.Output(commands, version))
+	} else {
+		fmt.Fprintln(os.Stdout, curCommand.Help())
+	}
 }

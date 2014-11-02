@@ -13,11 +13,18 @@ import (
 	"os"
 	"os/user"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 )
 
+var shortcutRegexp *regexp.Regexp
+var commandRegexp *regexp.Regexp
 
+// init
+func init() {
+	shortcutRegexp = regexp.MustCompile("shortcut \"(.+)\"")
+	commandRegexp = regexp.MustCompile("command \"(.+)\"")
+}
 
 // getOrderedConfigFiles finds all configuration files and returns them in order.
 func findOrderedConfigs() (configs []go_ini.File) {
@@ -52,10 +59,9 @@ func readShortcutFromConfiguration(shortcut string) (filterMap map[string]string
 
 	filterMap = make(map[string]string)
 
-	r, _ := regexp.Compile("shortcut \"(.+)\"")
 	for _, config := range configs {
 		for name, vars := range config {
-			match := r.FindStringSubmatch(name)
+			match := shortcutRegexp.FindStringSubmatch(name)
 			if len(match) >= 2 && match[1] == shortcut {
 				for key, value := range vars {
 					filterMap[strings.ToLower(key)] = value
@@ -76,7 +82,6 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	var depth int
 	var shortcut string
 	var interactive bool
-
 
 	mgitFlags := flag.NewFlagSet("mgitFlags", flag.ContinueOnError)
 
@@ -102,12 +107,11 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 		}
 	}
 
-
 	if mgitFlags.NArg() == 0 {
 		return command, false, args, repositoryFilter, false
 	}
 
-	mgitFlags.VisitAll(func(flag *flag.Flag){
+	mgitFlags.VisitAll(func(flag *flag.Flag) {
 		if value, ok := filterMap[flag.Name]; ok {
 			if flag.Value.String() == "" {
 				flag.Value.Set(value)
@@ -154,13 +158,12 @@ func createCommand(vars map[string]string) (repository.Command, bool) {
 }
 
 // AddConfigCommands add commands from the configuration files to the command list.
-func AddConfigCommands(commands map[string]repository.Command) (map[string]repository.Command) {
+func AddConfigCommands(commands map[string]repository.Command) map[string]repository.Command {
 	configs := findOrderedConfigs()
 
-	r, _ := regexp.Compile("command \"(.+)\"")
 	for _, config := range configs {
 		for name, vars := range config {
-			match := r.FindStringSubmatch(name)
+			match := commandRegexp.FindStringSubmatch(name)
 			if len(match) >= 2 {
 				if command, ok := createCommand(vars); ok {
 					commands[match[1]] = command
