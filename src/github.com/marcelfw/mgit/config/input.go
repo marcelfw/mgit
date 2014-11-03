@@ -12,6 +12,7 @@ import (
 	go_ini "github.com/vaughan0/go-ini"
 	"os"
 	"os/user"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,17 +29,36 @@ func init() {
 
 // getOrderedConfigFiles finds all configuration files and returns them in order.
 func findOrderedConfigs() (configs []go_ini.File) {
-	configs = make([]go_ini.File, 0, 2)
+	files := make([]string, 0, 10)
 
-	user, err := user.Current()
-	if err != nil {
-		// @todo panic or fail silently?
-		fmt.Fprint(os.Stderr, "Cannot determine home directory!")
-		return nil
+	// Follow parent directories and add all configurations.
+	if wd, err := os.Getwd(); err == nil {
+		for {
+			filename := wd + "/.mgit"
+			if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
+				files = append(files, filename)
+			}
+
+			nwd := path.Dir(wd)
+			if nwd == wd || nwd == "." {
+				break
+			}
+
+			wd = nwd
+		}
 	}
 
-	filename := user.HomeDir + "/.mgit"
-	if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
+	// Add configuration from user' directory.
+	if user, err := user.Current(); err == nil {
+		filename := user.HomeDir + "/.mgit"
+		if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
+			files = append(files, filename)
+		}
+	}
+
+	configs = make([]go_ini.File, 0, 2)
+
+	for _, filename := range files {
 		config, err := go_ini.LoadFile(filename)
 		if err != nil {
 			// @todo panic or fail silently?

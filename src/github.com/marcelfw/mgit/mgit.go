@@ -12,7 +12,6 @@ import (
 	"github.com/marcelfw/mgit/repository"
 	"log"
 	"os"
-	"runtime/pprof"
 	"sort"
 	"strings"
 	"sync"
@@ -236,12 +235,14 @@ func runCommand(command repository.RepositoryCommand, filter repository.Reposito
 }
 
 func main() {
-	f, err := os.Create("mgit.pprof")
-	if err != nil {
-		log.Fatal(err)
-	}
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
+	/*
+		f, err := os.Create("mgit.pprof")
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	*/
 
 	filterDefs := getFilterDefs()
 	commands := getCommands()
@@ -272,16 +273,16 @@ func main() {
 	}
 
 	/*
-	if cmdType := reflect.TypeOf(curCommand); cmdType.Name() == "cmdHelp" {
-		if len(args) == 1 {
-			if helpCommand, ok := commands[args[0]]; ok == true {
-				fmt.Fprintln(os.Stdout, helpCommand.Help())
-				return
+		if cmdType := reflect.TypeOf(curCommand); cmdType.Name() == "cmdHelp" {
+			if len(args) == 1 {
+				if helpCommand, ok := commands[args[0]]; ok == true {
+					fmt.Fprintln(os.Stdout, helpCommand.Help())
+					return
+				}
 			}
+			Usage(commands)
+			return
 		}
-		Usage(commands)
-		return
-	}
 	*/
 
 	if repositoryCommand, ok := curCommand.(repository.RepositoryCommand); ok {
