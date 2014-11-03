@@ -125,6 +125,11 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 		if !ok {
 			return command, false, args, repositoryFilter, false
 		}
+	} else {
+		filterMap, ok = readShortcutFromConfiguration("global")
+		if !ok {
+			return command, false, args, repositoryFilter, false
+		}
 	}
 
 	if mgitFlags.NArg() == 0 {
