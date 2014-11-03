@@ -47,7 +47,7 @@ Usage examples
 Tips 'n tricks
 --------------
 
-### Quickly change directory to a repository
+### Quickly go to directory of a repository
 
 Add the following code to your shell profile:
 
@@ -58,6 +58,14 @@ Add the following code to your shell profile:
 
 Source your profile and then you can use "mcd" to quickly go to any repository in your home directory.
 
+### Quickly view project' git status
+
+Add a .mgit in your repository root:
+
+    [shortcut "global"]
+        root = /home/myname/customer/project
+
+Now you can run "mgit status" or "mgit list" anywhere in your project directory to get the status of all repositories.
 
 
 Under the hood
