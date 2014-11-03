@@ -18,9 +18,10 @@ There is no binary release yet.
 Building from source
 --------------------
 
-git clone https://github.com/marcelfw/mgit.git
-cd mgit
-go build src/github.com/marcelfw/mgit
+    git clone https://github.com/marcelfw/mgit.git
+    cd mgit
+    export GOPATH=`pwd`
+    go build src/github.com/marcelfw/mgit
 
 
 Usage examples
@@ -42,6 +43,21 @@ Usage examples
     mgit -noremote mynas remote add mynas "ssh://git@mynas/home/git/{{ .Name }}.git"
     # 3. Push everything.
     mgit -remote mynas push
+
+Tips 'n tricks
+--------------
+
+### Quickly change directory to a repository
+
+Add the following code to your shell profile:
+
+    function mcd()
+    {
+        cd `mgit -root ~/ path $1 | tail -1`
+    }
+
+Source your profile and then you can use "mcd" to quickly go to any repository in your home directory.
+
 
 
 Under the hood
