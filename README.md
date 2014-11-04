@@ -62,8 +62,8 @@ Source your profile and then you can use "mcd" to quickly go to any repository i
 
 Add a .mgit in your repository root:
 
-    [shortcut "global"]
-        root = /home/myname/customer/project
+    [local]
+        root = .
 
 Now you can run "mgit status" or "mgit list" anywhere in your project directory to get the status of all repositories.
 

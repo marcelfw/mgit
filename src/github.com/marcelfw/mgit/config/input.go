@@ -6,7 +6,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"github.com/marcelfw/mgit/command"
 	"github.com/marcelfw/mgit/repository"
 	go_ini "github.com/vaughan0/go-ini"
@@ -15,28 +14,39 @@ import (
 	"path"
 	"regexp"
 	"strconv"
-	"strings"
 )
 
+type configFiles []go_ini.File
+
+var localRegexp *regexp.Regexp
 var shortcutRegexp *regexp.Regexp
 var commandRegexp *regexp.Regexp
 
+var globalConfigs configFiles
+var parentConfigs configFiles
+
 // init
 func init() {
+	localRegexp = regexp.MustCompile("^local$")
 	shortcutRegexp = regexp.MustCompile("shortcut \"(.+)\"")
 	commandRegexp = regexp.MustCompile("command \"(.+)\"")
+
+	readConfigs()
 }
 
-// getOrderedConfigFiles finds all configuration files and returns them in order.
-func findOrderedConfigs() (configs []go_ini.File) {
-	files := make([]string, 0, 10)
+// readConfigs finds all configuration files and loads them
+func readConfigs() {
+	globalConfigs = make([]go_ini.File, 0, 10)
+	parentConfigs = make([]go_ini.File, 0, 10)
 
 	// Follow parent directories and add all configurations.
 	if wd, err := os.Getwd(); err == nil {
 		for {
 			filename := wd + "/.mgit"
 			if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
-				files = append(files, filename)
+				if config, err := go_ini.LoadFile(filename); err == nil {
+					parentConfigs = append(parentConfigs, config)
+				}
 			}
 
 			nwd := path.Dir(wd)
@@ -52,48 +62,70 @@ func findOrderedConfigs() (configs []go_ini.File) {
 	if user, err := user.Current(); err == nil {
 		filename := user.HomeDir + "/.mgit"
 		if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
-			files = append(files, filename)
+			if config, err := go_ini.LoadFile(filename); err == nil {
+				globalConfigs = append(globalConfigs, config)
+			}
 		}
 	}
+}
 
-	configs = make([]go_ini.File, 0, 2)
-
-	for _, filename := range files {
-		config, err := go_ini.LoadFile(filename)
-		if err != nil {
-			// @todo panic or fail silently?
-			fmt.Fprint(os.Stderr, "Cannot read configuration file, incorrect format!\n")
-			return nil
+func reduceConfigs(regexp regexp.Regexp, reduceFunc func([]string, map[string]string), configArrays ...configFiles) {
+	for _, configs := range configArrays {
+		for _, config := range configs {
+			for name, vars := range config {
+				match := regexp.FindStringSubmatch(name)
+				if len(match) >= 1 {
+					reduceFunc(match, vars)
+				}
+			}
 		}
-
-		configs = append(configs, config)
 	}
-
-	return configs
 }
 
 // readShortcutFromConfiguration reads the configuration and return the filter for the shortcut.
 // return bool false if something went wrong.
-func readShortcutFromConfiguration(shortcut string) (filterMap map[string]string, ok bool) {
-	configs := findOrderedConfigs()
+func readShortcutFromConfiguration(shortcut string) (map[string]string, bool) {
+	var filterMap map[string]string
 
-	filterMap = make(map[string]string)
-
-	for _, config := range configs {
-		for name, vars := range config {
-			match := shortcutRegexp.FindStringSubmatch(name)
-			if len(match) >= 2 && match[1] == shortcut {
-				for key, value := range vars {
-					filterMap[strings.ToLower(key)] = value
-				}
-
-				return filterMap, true
+	var mapFunc = func(match []string, vars map[string]string) {
+		if len(match) >= 2 && match[1] == shortcut {
+			if filterMap == nil {
+				filterMap = vars
 			}
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Could not find shortcut \"%s\"!\n", shortcut)
-	return filterMap, false
+	reduceConfigs(*shortcutRegexp, mapFunc, parentConfigs, globalConfigs)
+
+	return filterMap, filterMap != nil
+}
+
+// readShortcutFromConfiguration reads the configuration and return the filter for the shortcut.
+// return bool false if something went wrong.
+func readLocalConfiguration() (map[string]string, bool) {
+	var filterMap map[string]string
+
+	var mapFunc = func(match []string, vars map[string]string) {
+		if len(match) >= 1 {
+			if filterMap == nil {
+				filterMap = vars
+			}
+		}
+	}
+
+	reduceConfigs(*localRegexp, mapFunc, parentConfigs, globalConfigs)
+
+	if filterMap != nil {
+		if value, ok := filterMap["root"]; ok {
+			if value == "." || (len(value) >= 2 && value[0:2] == "./") {
+				if wd, err := os.Getwd(); err == nil {
+					filterMap["root"] = path.Join(wd, value)
+				}
+			}
+		}
+	}
+
+	return filterMap, filterMap != nil
 }
 
 // ParseCommandline parses and validates the command-line and return useful structs to continue.
@@ -126,7 +158,7 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 			return command, false, args, repositoryFilter, false
 		}
 	} else {
-		filterMap, ok = readShortcutFromConfiguration("global")
+		filterMap, ok = readLocalConfiguration()
 		if !ok {
 			return command, false, args, repositoryFilter, false
 		}
@@ -184,18 +216,15 @@ func createCommand(vars map[string]string) (repository.Command, bool) {
 
 // AddConfigCommands add commands from the configuration files to the command list.
 func AddConfigCommands(commands map[string]repository.Command) map[string]repository.Command {
-	configs := findOrderedConfigs()
-
-	for _, config := range configs {
-		for name, vars := range config {
-			match := commandRegexp.FindStringSubmatch(name)
-			if len(match) >= 2 {
-				if command, ok := createCommand(vars); ok {
-					commands[match[1]] = command
-				}
+	var cmdFunc = func(match []string, vars map[string]string) {
+		if len(match) >= 2 {
+			if command, ok := createCommand(vars); ok {
+				commands[match[1]] = command
 			}
 		}
 	}
+
+	reduceConfigs(*commandRegexp, cmdFunc, parentConfigs, globalConfigs)
 
 	return commands
 }
