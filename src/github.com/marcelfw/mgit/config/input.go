@@ -67,6 +67,11 @@ func readConfigs() {
 			}
 		}
 	}
+	if fi, err := os.Stat("/etc/mgit"); err == nil && !fi.IsDir() {
+		if config, err := go_ini.LoadFile("/etc/mgit"); err == nil {
+			globalConfigs = append(globalConfigs, config)
+		}
+	}
 }
 
 func reduceConfigs(regexp regexp.Regexp, reduceFunc func([]string, map[string]string), configArrays ...configFiles) {

@@ -18,7 +18,7 @@ import (
 )
 
 // current version
-var version = "0.1"
+var version = "0.0.1"
 
 // channel size for pushing repositories
 const numCachedRepositories = 100
@@ -27,7 +27,7 @@ const numCachedRepositories = 100
 const numDigesters = 5
 
 // git commands non-interactive we automatically pass-through
-var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote"}
+var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote", "branch"}
 
 // Usage returns the usage for the program.
 func Usage(commands map[string]repository.Command) {
