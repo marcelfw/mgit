@@ -11,8 +11,6 @@ import (
 
 type cmdEcho struct {
 	args []string
-
-	repository repository.Repository
 }
 
 func NewEchoCommand() cmdEcho {
@@ -45,12 +43,12 @@ func (cmd cmdEcho) Run(repository repository.Repository) (outRepository reposito
 	return repository, true
 }
 
-func (cmd cmdEcho) Header() []string {
-	return nil
+func (cmd cmdEcho) Header() string {
+	return ""
 }
 
-func (cmd cmdEcho) Footer() []string {
-	return nil
+func (cmd cmdEcho) Footer() string {
+	return ""
 }
 
 func (cmd cmdEcho) Output(repository repository.Repository) string {

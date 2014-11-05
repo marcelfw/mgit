@@ -199,6 +199,14 @@ func (repository *Repository) RemotePathContains(search string) bool {
 	return false
 }
 
+// NameContains returns true if name contains search.
+func (repository *Repository) NameContains(search string) bool {
+	if strings.Contains(repository.Name, search) {
+		return true
+	}
+	return false
+}
+
 // GetPath returns repository root directory.
 func (repository *Repository) GetPath() string {
 	return repository.path
@@ -265,12 +273,14 @@ func (repository Repository) ReplaceMacros(args []string) (out []string) {
 	macros["CurrentBranch"] = repository.GetCurrentBranch()
 
 	for idx, arg := range args {
-		t := template.Must(template.New("arg").Parse(arg))
-		b := new(bytes.Buffer)
-		if err := t.Execute(b, macros); err == nil {
-			out[idx] = b.String()
-		} else {
-			log.Fatal(err)
+		out[idx] = ""
+		if t, err := template.New("arg").Parse(arg); err == nil {
+			b := new(bytes.Buffer)
+			if err := t.Execute(b, macros); err == nil {
+				out[idx] = b.String()
+			} else {
+				log.Fatal(err)
+			}
 		}
 	}
 

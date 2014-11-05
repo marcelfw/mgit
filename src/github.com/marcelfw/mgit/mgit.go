@@ -59,6 +59,7 @@ func getFilterDefs() []repository.FilterDefinition {
 	filters = append(filters, filter.NewBranchFilter())
 	filters = append(filters, filter.NewRemoteFilter())
 	filters = append(filters, filter.NewRemotePathFilter())
+	filters = append(filters, filter.NewNameFilter())
 
 	return filters
 }
@@ -70,7 +71,6 @@ func getCommands() map[string]repository.Command {
 	cmds["help"] = command.NewHelpCommand()
 	cmds["echo"] = command.NewEchoCommand()
 	cmds["list"] = command.NewListCommand()
-	cmds["path"] = command.NewPathCommand()
 	cmds["version"] = command.NewVersionCommand()
 
 	for _, gitCommand := range gitPassThru {
