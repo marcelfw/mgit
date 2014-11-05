@@ -1,22 +1,17 @@
-MGit: Multiple Git repository handler
-=====================================
+MGit: Mass Git
+==============
 
-MGit is a tool to run Git commands on multiple repositories, collect output and present it in one view.
+Mass git is a tool to run commands on multiple repositories, collect their output and present it in one view.
 
-Features
+* Filter repositories on branch, remote, name and more
+* Execute Git commands on multiple repositories
+* Combine all outputs
+* Simple configuration
+* Customize and extend commands
+
+
+Examples
 --------
-
-1. Filter repositories
-2. Pre-configured commands
-3. Combine all outputs
-4. Store configuration for re-use
-5. Customize and extend commands
-
-_(see feature details below)_
-
-
-Usage examples
---------------
 
     # Copy all your development branches to your laptop.
     mgit -branch develop -remote laptop push laptop
@@ -49,63 +44,6 @@ Building from source
 2. git clone https://github.com/marcelfw/mgit.git
 3. go build src/github.com/marcelfw/mgit/mgit.go
 4. Copy binary to bin directory.
-
-
-Features detailed
------------------
-
-#### Filter repositories
-
-Currently you can filter on these things:
-
-* directory and recurse depth
-* branch or nobranch
-* remote or noremote
-* remotepath
-
-#### Pre-configured commands
-
-Builtin commands:
-
-* list - list repositories
-* path - show complete path
-* echo - echo repository information
-* help - show help information (also help "command")
-* version - show version
-
-Git "proxied" commands:
-
-* status, log, commit, add
-* fetch, pull, push
-* remote, branch
-
-By default commands will be run simultaneously but you can add an option to run them interactively.
-
-#### Combine all outputs
-
-If possible commands are run simultaneously and their output is collected and returned in one view.
-
-#### Store configuration for re-use
-
-Shortcuts allow you to combine filters and re-use them from the command-line.
-Configuration are simple text files in ini-format.
-
-Global configurations are always read and allow you to store system-global, user-global shortcuts and custom commands.
-
-    ~/.mgit        user configuration
-    /etc/mgit      system configuration
-
-Directory configurations are searched from the current directory all the way to the root and allow you to set project defaults, shortcuts
-and commands.
-
-Directory configurations are searched first and then user- and system-configurations. The first match for a shortcut or command will be used.
-
-
-#### Customize and extend commands
-
-Pre-configured commands can be overridden in your own configuration file and you can add your own Git commands.
-
-
 
 
 Tips 'n tricks
