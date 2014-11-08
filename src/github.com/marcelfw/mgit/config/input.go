@@ -9,6 +9,7 @@ import (
 	"github.com/marcelfw/mgit/command"
 	"github.com/marcelfw/mgit/repository"
 	go_ini "github.com/vaughan0/go-ini"
+	"log"
 	"os"
 	"os/user"
 	"path"
@@ -158,18 +159,16 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	var filterMap map[string]string
 
 	if shortcut != "" {
-		filterMap, ok = readShortcutFromConfiguration(shortcut)
-		if !ok {
-			return command, false, args, repositoryFilter, false
-		}
+		filterMap, _ = readShortcutFromConfiguration(shortcut)
 	} else {
 		filterMap, ok = readLocalConfiguration()
-		if !ok {
-			return command, false, args, repositoryFilter, false
-		}
+	}
+	if filterMap == nil {
+		filterMap = make(map[string]string)
 	}
 
 	if mgitFlags.NArg() == 0 {
+		log.Fatal("Could not find command to execute.")
 		return command, false, args, repositoryFilter, false
 	}
 
@@ -178,6 +177,10 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 			if flag.Value.String() == "" {
 				flag.Value.Set(value)
 			}
+		}
+
+		if flag.Value.String() != "" {
+			log.Printf("Using flag \"%s\" with value \"%s\"", flag.Name, flag.Value.String())
 		}
 	})
 
@@ -199,6 +202,8 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	if interactive {
 		cmdInteractive = true
 	}
+
+	log.Printf("Using root directory and depth \"%s\", \"%d\"", rootDirectory, depth)
 
 	repositoryFilter = repository.NewRepositoryFilter(rootDirectory, depth, filters)
 

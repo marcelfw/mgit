@@ -6,8 +6,10 @@ package filter
 
 import (
 	"flag"
-	"fmt"
 	"github.com/marcelfw/mgit/repository"
+	"io/ioutil"
+	"log"
+	"os"
 )
 
 type filterBranch struct {
@@ -34,18 +36,38 @@ func (filter filterBranch) AddFlags(flags *flag.FlagSet) repository.Filter {
 	return filter
 }
 
-func (filter filterBranch) Dump() string {
-	return fmt.Sprintf("branch: branch=%s, nobranch=%s", *filter.branch, *filter.nobranch)
+// getBranches returns the branches.
+func getBranches(repository repository.Repository) (branches map[string]bool) {
+	branches = make(map[string]bool)
+
+	if fi, err := os.Stat(repository.GetGitRoot() + "/refs/heads"); err == nil && fi.IsDir() {
+		if fis, err := ioutil.ReadDir(repository.GetGitRoot() + "/refs/heads"); err == nil {
+			for _, fi := range fis {
+				// We don't support branches in subdirectories.
+				if !fi.IsDir() {
+					branches[fi.Name()] = true
+				}
+			}
+		}
+	} else {
+		log.Printf("! no directory [%v]", err)
+	}
+
+	//log.Printf("Branches for repository \"%s\" => \"%v\"", repository.Name, branches)
+
+	return branches
 }
 
 func (filter filterBranch) FilterRepository(repos repository.Repository) bool {
+	branches := getBranches(repos)
+
 	if *filter.branch != "" {
-		if !repos.IsBranch(*filter.branch) {
+		if _, ok := branches[*filter.branch]; !ok {
 			return false
 		}
 	}
 	if *filter.nobranch != "" {
-		if repos.IsBranch(*filter.nobranch) {
+		if _, ok := branches[*filter.nobranch]; ok {
 			return false
 		}
 	}

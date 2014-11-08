@@ -27,7 +27,7 @@ const numCachedRepositories = 100
 const numDigesters = 5
 
 // git commands non-interactive we automatically pass-through
-var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote", "branch", "archive"}
+var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote", "branch", "archive", "tag"}
 
 // Usage returns the usage for the program.
 func Usage(commands map[string]repository.Command) {
@@ -56,10 +56,10 @@ Commands are:
 func getFilterDefs() []repository.FilterDefinition {
 	filters := make([]repository.FilterDefinition, 0, 10)
 
-	filters = append(filters, filter.NewBranchFilter())
-	filters = append(filters, filter.NewRemoteFilter())
-	//filters = append(filters, filter.NewRemotePathFilter())
 	filters = append(filters, filter.NewNameFilter())
+	filters = append(filters, filter.NewRemoteFilter())
+	filters = append(filters, filter.NewBranchFilter())
+	filters = append(filters, filter.NewTagFilter())
 
 	return filters
 }
@@ -131,6 +131,7 @@ func returnTextTable(header []string, rows [][]string) string {
 			column_width = make([]int, len(row))
 			line_columns = make([]string, len(row))
 		}
+
 		for idx, column := range row {
 			if len(column) > column_width[idx] {
 				column_width[idx] = len(column)
@@ -152,6 +153,7 @@ func returnTextTable(header []string, rows [][]string) string {
 	}
 
 	// Write actual columns.
+	no_of_columns := len(column_width)
 	for _, row := range rows {
 		for idx, column := range row {
 			if idx > 0 {
@@ -159,7 +161,8 @@ func returnTextTable(header []string, rows [][]string) string {
 			}
 
 			buffer.WriteString(column)
-			if len(column) < column_width[idx] {
+
+			if idx < (no_of_columns-1) && len(column) < column_width[idx] {
 				buffer.WriteString(strings.Repeat(" ", column_width[idx]-len(column)))
 			}
 		}
@@ -255,6 +258,7 @@ func main() {
 
 	var curCommand repository.Command
 	if curCommand, ok = commands[textCommand]; ok == false {
+		log.Printf("No such command \"%s\"", textCommand)
 		Usage(commands)
 		return
 	}

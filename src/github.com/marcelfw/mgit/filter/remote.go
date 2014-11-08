@@ -6,7 +6,6 @@ package filter
 
 import (
 	"flag"
-	"fmt"
 	"github.com/marcelfw/mgit/repository"
 	"regexp"
 	"strings"
@@ -47,10 +46,6 @@ func (filter filterRemote) AddFlags(flags *flag.FlagSet) repository.Filter {
 	filter.noremoteurl = flags.String("noremoteurl", "", "select only when this value is not found in the remote path")
 
 	return filter
-}
-
-func (filter filterRemote) Dump() string {
-	return fmt.Sprintf("remote: remote=%s, noremote=%s", *filter.remote, *filter.noremote)
 }
 
 // getRemotes returns remotes and paths.

@@ -26,9 +26,6 @@ type Repository struct {
 	currentBranch string // store the current branch
 	status        string // store the porcelain status
 
-	remotes  map[string]string // remotes
-	branches []string          // branch names
-
 	config go_ini.File // stored config
 
 	info map[string]interface{} // let commands store info from a run here
@@ -65,7 +62,6 @@ func NewRepository(index int, name, gitpath string) (repository Repository, ok b
 		ok = true
 
 		repository.readConfig()
-		repository.updateBranches()
 	}
 	return
 }
@@ -81,26 +77,6 @@ func (repository *Repository) readConfig() {
 
 func (repository *Repository) GetConfig() go_ini.File {
 	return repository.config
-}
-
-// findBranches fills the branches array with all the names (of the branches).
-func (repository *Repository) updateBranches() {
-	branches := make([]string, 0, 10)
-
-	if fi, err := os.Stat(repository.gitRoot + "/logs/refs/heads"); err == nil && fi.IsDir() {
-		if fis, err := ioutil.ReadDir(repository.gitRoot + "/logs/refs/heads"); err == nil {
-			for _, fi := range fis {
-				// We don't support branches in subdirectories.
-				if !fi.IsDir() {
-					branches = append(branches, fi.Name())
-				}
-			}
-		}
-
-		repository.branches = branches
-	} else {
-		log.Printf("! no directory [%v]", err)
-	}
 }
 
 func (repository Repository) ExecGit(args ...string) (result string, ok bool) {
@@ -157,22 +133,17 @@ func (repository *Repository) PathMatch(match string) bool {
 	return false
 }
 
-// IsBranch return true if branch is a branch.
-func (repository *Repository) IsBranch(branch string) bool {
-	for _, b := range repository.branches {
-		if b == branch {
-			return true
-		}
-	}
-	return false
-}
-
 // NameContains returns true if name contains search.
 func (repository *Repository) NameContains(search string) bool {
 	if strings.Contains(repository.Name, search) {
 		return true
 	}
 	return false
+}
+
+// GetGitRoot returns repository .git root directory.
+func (repository *Repository) GetGitRoot() string {
+	return repository.gitRoot
 }
 
 // GetPath returns repository root directory.

@@ -6,7 +6,6 @@ package filter
 
 import (
 	"flag"
-	"fmt"
 	"github.com/marcelfw/mgit/repository"
 )
 
@@ -30,10 +29,6 @@ func (filter filterName) AddFlags(flags *flag.FlagSet) repository.Filter {
 	filter.match = flags.String("name", "", "select only when name is found")
 
 	return filter
-}
-
-func (filter filterName) Dump() string {
-	return fmt.Sprintf("name: match=%s", *filter.match)
 }
 
 func (filter filterName) FilterRepository(repos repository.Repository) bool {
