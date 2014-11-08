@@ -27,7 +27,7 @@ const numCachedRepositories = 100
 const numDigesters = 5
 
 // git commands non-interactive we automatically pass-through
-var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote", "branch"}
+var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote", "branch", "archive"}
 
 // Usage returns the usage for the program.
 func Usage(commands map[string]repository.Command) {
@@ -58,7 +58,7 @@ func getFilterDefs() []repository.FilterDefinition {
 
 	filters = append(filters, filter.NewBranchFilter())
 	filters = append(filters, filter.NewRemoteFilter())
-	filters = append(filters, filter.NewRemotePathFilter())
+	//filters = append(filters, filter.NewRemotePathFilter())
 	filters = append(filters, filter.NewNameFilter())
 
 	return filters
@@ -271,19 +271,6 @@ func main() {
 	if newCommand, ok := initResult.(repository.Command); ok == true {
 		curCommand = newCommand
 	}
-
-	/*
-		if cmdType := reflect.TypeOf(curCommand); cmdType.Name() == "cmdHelp" {
-			if len(args) == 1 {
-				if helpCommand, ok := commands[args[0]]; ok == true {
-					fmt.Fprintln(os.Stdout, helpCommand.Help())
-					return
-				}
-			}
-			Usage(commands)
-			return
-		}
-	*/
 
 	if repositoryCommand, ok := curCommand.(repository.RepositoryCommand); ok {
 		// Run the actual command.

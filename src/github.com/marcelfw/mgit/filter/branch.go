@@ -6,8 +6,8 @@ package filter
 
 import (
 	"flag"
-	"github.com/marcelfw/mgit/repository"
 	"fmt"
+	"github.com/marcelfw/mgit/repository"
 )
 
 type filterBranch struct {
@@ -18,7 +18,7 @@ type filterBranch struct {
 }
 
 func NewBranchFilter() filterBranch {
-	filter := filterBranch{name:"branch"}
+	filter := filterBranch{name: "branch"}
 
 	return filter
 }
@@ -27,7 +27,7 @@ func (filter filterBranch) Usage() string {
 	return "Filter on the present of a branch."
 }
 
-func (filter filterBranch) AddFlags(flags *flag.FlagSet) (repository.Filter) {
+func (filter filterBranch) AddFlags(flags *flag.FlagSet) repository.Filter {
 	filter.branch = flags.String("branch", "", "select only with this branch")
 	filter.nobranch = flags.String("nobranch", "", "select only without this branch")
 
@@ -49,6 +49,6 @@ func (filter filterBranch) FilterRepository(repos repository.Repository) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }

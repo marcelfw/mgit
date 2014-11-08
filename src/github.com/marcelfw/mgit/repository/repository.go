@@ -6,14 +6,12 @@ package repository
 
 import (
 	"bytes"
-	"fmt"
 	go_ini "github.com/vaughan0/go-ini"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path"
-	"regexp"
 	"strings"
 	"text/template"
 )
@@ -31,6 +29,8 @@ type Repository struct {
 	remotes  map[string]string // remotes
 	branches []string          // branch names
 
+	config go_ini.File // stored config
+
 	info map[string]interface{} // let commands store info from a run here
 }
 
@@ -39,13 +39,6 @@ type ByIndex []Repository
 func (a ByIndex) Len() int           { return len(a) }
 func (a ByIndex) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByIndex) Less(i, j int) bool { return a[i].index < a[j].index }
-
-var remoteRegexp *regexp.Regexp
-
-// init
-func init() {
-	remoteRegexp = regexp.MustCompile("remote \"(.+)\"")
-}
 
 // NewRepository returns a Repository structure describing the repository.
 // If there is an error, ok will be false.
@@ -71,32 +64,23 @@ func NewRepository(index int, name, gitpath string) (repository Repository, ok b
 	if repository.gitRoot != "" {
 		ok = true
 
-		repository.updateRemotes()
+		repository.readConfig()
 		repository.updateBranches()
 	}
 	return
 }
 
-// findRemotes fills the remotes array with all the names (of the remotes).
-func (repository *Repository) updateRemotes() {
-	remotes := make(map[string]string)
-
+func (repository *Repository) readConfig() {
 	if fi, err := os.Stat(repository.gitRoot + "/config"); err == nil && !fi.IsDir() {
 		config, err := go_ini.LoadFile(repository.gitRoot + "/config")
 		if err == nil {
-			for name, vars := range config {
-				match := remoteRegexp.FindStringSubmatch(name)
-				if len(match) >= 2 {
-					name := match[1]
-					if value, ok := vars["url"]; ok {
-						remotes[name] = value
-					}
-				}
-			}
+			repository.config = config
 		}
-
-		repository.remotes = remotes
 	}
+}
+
+func (repository *Repository) GetConfig() go_ini.File {
+	return repository.config
 }
 
 // findBranches fills the branches array with all the names (of the branches).
@@ -115,7 +99,7 @@ func (repository *Repository) updateBranches() {
 
 		repository.branches = branches
 	} else {
-		fmt.Printf("! no directory [%v]", err)
+		log.Printf("! no directory [%v]", err)
 	}
 }
 
@@ -177,22 +161,6 @@ func (repository *Repository) PathMatch(match string) bool {
 func (repository *Repository) IsBranch(branch string) bool {
 	for _, b := range repository.branches {
 		if b == branch {
-			return true
-		}
-	}
-	return false
-}
-
-// IsRemote returns true if remote is a remote.
-func (repository *Repository) IsRemote(remote string) bool {
-	_, ok := repository.remotes[remote]
-	return ok
-}
-
-// RemotePathContains returns true if remote path contains search.
-func (repository *Repository) RemotePathContains(search string) bool {
-	for _, r := range repository.remotes {
-		if strings.Contains(r, search) {
 			return true
 		}
 	}
