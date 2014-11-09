@@ -4,54 +4,44 @@ MGit: Mass Git Manual
 Mass git is a tool to run commands on multiple repositories, collect their output and present it in one view.
 
 
-Features detailed
------------------
-
 ### Filtering
 
 Repositories can be filtered by using the filters as described below. Filters can be combined as necessary.
+Every filter can be given on the command-line (prefix with -) or used in a shortcut ini-section.
 
-#### Root directory and recurse depth
+    root         specify root directory, inside shortcuts relative directories
+                 are taken from the location of the config file
+    depth        maximum depth to recurse directories
+    name         only when text partially matches repository name
 
-The root directory specifies the start of the repository search and the recurse depth limits how deep it will search.
+    branch       only when this branch is a branch of the repository
+    nobranch     only when it is not
 
-    # Search my home directory for 2 levels and outputs all repositories it finds.
-    mgit -root /Users/marcel -depth 2 list
+    tag          only when this tag is a tag of the repository
+    notag        only when it is not
 
-If not otherwise specified the default -root is the current directory. Depth is unlimited if not specified.
+    remote       only when this an existing remote
+    noremote     only when it is not
 
-#### Branch and remote
+    remoteurl    only when text partially matches a remoteurl
+    noremoteurl  only when not..
 
-You can filter on the presence of branch or remote, or on the absence of one.
+An example on the command-line would be:
 
-    # List repositories which have a 'develop' branch.
-    mgit -branch develop list
+    mgit -root . -branch develop list
 
-    # List repositories which don't have a remote called 'laptop'.
-    mgit -noremote laptop list
+Inside a configuration:
 
-#### Remote path
-
-Sometimes you don't know (or don't care) about the name of the remote, but you do know which path you would like
-or not.
-
-    # List my repositories cloned from github.
-    mgit -remotepath github.com/marcelfw list
-
-#### Name
-
-The name of the repository is the full path excluding the root directory. You can search for a specific repository
-using this.
-
-    # List repositories in a sub-directory called 'client-42'.
-    mgit -name /client-42/ list
+    [shortcut "home"]
+    root = /Users/marcel/
+    remoteurl = github.com/marcelfw
 
 
-Commands
---------
+### Commands
 
-MGit only contains a few builtin commands, the rest are calls to Git itself. However the builtins can be quite useful.
-
+Mass git is mostly about just passing through actual Git commands and viewing the result is a nice view. So common git
+commands are available. However you can add others are create your own.
+Every mass git command has a name which doesn't conflict (except for help) with an actual git command. 
 
 #### List
 
@@ -77,7 +67,7 @@ If you specific "-i" before the command, mgit will assume it has to run interact
 
 * status, log, commit, add
 * fetch, pull, push
-* remote, branch
+* remote, branch, tag
 
 
 Configuration
@@ -100,6 +90,7 @@ Directory configurations are searched first and then user- and system-configurat
 #### Customize and extend commands
 
 Pre-configured commands can be overridden in your own configuration file and you can add your own Git commands.
+It is adviced to never name your custom command after a normal git command.
 
 
 
@@ -136,10 +127,10 @@ Add the following code to your shell profile:
 
     function mcd()
     {
-        cd `mgit -root ~/ path $1 | tail -1`
+        cd `mgit -root ~/ -name "$1" echo "{{ .Path }}" | tail -1`
     }
 
-Source your profile and then you can use "mcd <part-of-repository-path>" to quickly go to any repository in your home directory.
+Source your profile and then you can use "mcd <part-of-repository-path>" to quickly go to any repository in your home directory. Change tail to head, to return the first match instead of the last.
 
 ### Quickly view projects' git status
 
@@ -150,8 +141,5 @@ Add a .mgit in your repository root:
 
 Now you can run "mgit status" or "mgit list" anywhere in your project directory to get the status of all repositories.
 
+Note: this example uses the fact that a relative directory inside a configuration uses the location of the configuration file as the start directory.
 
-License
--------
-
-Code is under the [The MIT License (MIT)](https://github.com/marcelfw/mgit/tree/master/LICENSE.txt).
