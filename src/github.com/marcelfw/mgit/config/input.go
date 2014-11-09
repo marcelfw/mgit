@@ -17,7 +17,12 @@ import (
 	"strconv"
 )
 
-type configFiles []go_ini.File
+type configFile struct {
+	file   string
+	config go_ini.File
+}
+
+type configFiles []configFile
 
 var localRegexp *regexp.Regexp
 var shortcutRegexp *regexp.Regexp
@@ -37,8 +42,8 @@ func init() {
 
 // readConfigs finds all configuration files and loads them
 func readConfigs() {
-	globalConfigs = make([]go_ini.File, 0, 10)
-	parentConfigs = make([]go_ini.File, 0, 10)
+	globalConfigs = make([]configFile, 0, 10)
+	parentConfigs = make([]configFile, 0, 10)
 
 	// Follow parent directories and add all configurations.
 	if wd, err := os.Getwd(); err == nil {
@@ -46,7 +51,7 @@ func readConfigs() {
 			filename := wd + "/.mgit"
 			if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
 				if config, err := go_ini.LoadFile(filename); err == nil {
-					parentConfigs = append(parentConfigs, config)
+					parentConfigs = append(parentConfigs, configFile{filename, config})
 				}
 			}
 
@@ -64,13 +69,13 @@ func readConfigs() {
 		filename := user.HomeDir + "/.mgit"
 		if fi, err := os.Stat(filename); err == nil && !fi.IsDir() {
 			if config, err := go_ini.LoadFile(filename); err == nil {
-				globalConfigs = append(globalConfigs, config)
+				globalConfigs = append(globalConfigs, configFile{filename, config})
 			}
 		}
 	}
 	if fi, err := os.Stat("/etc/mgit"); err == nil && !fi.IsDir() {
 		if config, err := go_ini.LoadFile("/etc/mgit"); err == nil {
-			globalConfigs = append(globalConfigs, config)
+			globalConfigs = append(globalConfigs, configFile{"/etc/mgit", config})
 		}
 	}
 }
@@ -78,9 +83,15 @@ func readConfigs() {
 func reduceConfigs(regexp regexp.Regexp, reduceFunc func([]string, map[string]string), configArrays ...configFiles) {
 	for _, configs := range configArrays {
 		for _, config := range configs {
-			for name, vars := range config {
+			for name, vars := range config.config {
 				match := regexp.FindStringSubmatch(name)
 				if len(match) >= 1 {
+					if value, ok := vars["root"]; ok {
+						if value == "." || (len(value) >= 2 && value[0:2] == "./") {
+							dir := path.Dir(config.file)
+							vars["root"] = path.Join(dir, value)
+						}
+					}
 					reduceFunc(match, vars)
 				}
 			}
@@ -122,13 +133,6 @@ func readLocalConfiguration() (map[string]string, bool) {
 	reduceConfigs(*localRegexp, mapFunc, parentConfigs, globalConfigs)
 
 	if filterMap != nil {
-		if value, ok := filterMap["root"]; ok {
-			if value == "." || (len(value) >= 2 && value[0:2] == "./") {
-				if wd, err := os.Getwd(); err == nil {
-					filterMap["root"] = path.Join(wd, value)
-				}
-			}
-		}
 	}
 
 	return filterMap, filterMap != nil
