@@ -245,7 +245,7 @@ func main() {
 		}
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
-	*/
+	//*/
 
 	filterDefs := getFilterDefs()
 	commands := getCommands()
@@ -271,7 +271,7 @@ func main() {
 
 	// Let the command initialize itself with the arguments.
 	initResult := curCommand.Init(args)
-	// @todo remove this casting
+	// @note no pointer receiver so for now we do this
 	if newCommand, ok := initResult.(repository.Command); ok == true {
 		curCommand = newCommand
 	}

@@ -24,7 +24,7 @@ func (cmd cmdHelp) Usage() string {
 
 func (cmd cmdHelp) Help() string {
 	if cmd.command != "" {
-		return "Showing help about " + cmd.command
+		return "There is no help about \"" + cmd.command + "\""
 	}
 	return `Show help information.
 
@@ -43,5 +43,5 @@ func (cmd cmdHelp) Output(commands map[string]repository.Command, version string
 	if helpCommand, ok := commands[cmd.command]; ok == true {
 		return helpCommand.Help()
 	}
-	return "Unknown command \"" + cmd.command + "\"."
+	return cmd.Help()
 }

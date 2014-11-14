@@ -9,6 +9,7 @@ import (
 	"github.com/marcelfw/mgit/command"
 	"github.com/marcelfw/mgit/repository"
 	go_ini "github.com/vaughan0/go-ini"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/user"
@@ -144,6 +145,7 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	var depth int
 	var shortcut string
 	var interactive bool
+	var debug bool
 
 	mgitFlags := flag.NewFlagSet("mgitFlags", flag.ContinueOnError)
 
@@ -152,6 +154,7 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	mgitFlags.StringVar(&rootDirectory, "root", "", "set root directory")
 	mgitFlags.IntVar(&depth, "depth", 0, "maximum depth to search in")
 	mgitFlags.BoolVar(&interactive, "i", false, "run command interactively")
+	mgitFlags.BoolVar(&debug, "debug", false, "show debug log")
 
 	filters := make([]repository.Filter, 0, len(filterDefs))
 	for _, filterDef := range filterDefs {
@@ -159,6 +162,10 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	}
 
 	mgitFlags.Parse(osArgs)
+
+	if !debug {
+		log.SetOutput(ioutil.Discard)
+	}
 
 	var filterMap map[string]string
 
