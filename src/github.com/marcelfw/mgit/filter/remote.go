@@ -34,6 +34,10 @@ func NewRemoteFilter() filterRemote {
 	return filter
 }
 
+func (filter filterRemote) Name() string {
+	return filter.name
+}
+
 func (filter filterRemote) Usage() string {
 	return "Filter on presence of remote."
 }

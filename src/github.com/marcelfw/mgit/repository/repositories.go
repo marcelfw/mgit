@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -41,18 +42,23 @@ func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath
 			name = strings.TrimLeft(name, "/")
 			if filter.depth > 0 && (strings.Count(name, "/")+1) > filter.depth {
 				// if depth limit is set, ignore directories too deep.
+				log.Printf("Skipping repository \"%s\" (filtered by depth)", name)
 				return nil
 			}
 			if repository, ok := NewRepository(no_of_repositories, name, vpath); ok {
-				var found = true
+				var allow = true
 				for _, filter := range filter.filters {
 					if filter.FilterRepository(repository) == false {
-						found = false
+						allow = false
+						if filterdef, ok := filter.(FilterDefinition); ok {
+							log.Printf("Skipping repository \"%s\" (filtered by %v)", name, filterdef.Name())
+						}
 						break
 					}
 				}
 
-				if found {
+				if allow {
+					log.Printf("Found repository \"%s\"", name)
 					no_of_repositories++
 					reposChannel <- repository
 				}

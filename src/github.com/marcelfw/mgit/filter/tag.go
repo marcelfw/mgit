@@ -25,6 +25,10 @@ func NewTagFilter() filterTag {
 	return filter
 }
 
+func (filter filterTag) Name() string {
+	return filter.name
+}
+
 func (filter filterTag) Usage() string {
 	return "Filter on the present of a tag."
 }

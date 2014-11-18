@@ -21,6 +21,10 @@ func NewNameFilter() filterName {
 	return filter
 }
 
+func (filter filterName) Name() string {
+	return filter.name
+}
+
 func (filter filterName) Usage() string {
 	return "Filter on the name of the repository."
 }

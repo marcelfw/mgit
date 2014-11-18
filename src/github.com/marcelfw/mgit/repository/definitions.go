@@ -8,6 +8,8 @@ import "flag"
 
 // FilterDefinition is the interface used for each filter definition.
 type FilterDefinition interface {
+	Name() string // name of the filter
+
 	Usage() string // short string describing the usage
 
 	// Add flags for the command-line parser.

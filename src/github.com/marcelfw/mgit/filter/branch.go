@@ -25,6 +25,10 @@ func NewBranchFilter() filterBranch {
 	return filter
 }
 
+func (filter filterBranch) Name() string {
+	return filter.name
+}
+
 func (filter filterBranch) Usage() string {
 	return "Filter on the present of a branch."
 }

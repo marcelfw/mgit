@@ -6,6 +6,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"github.com/marcelfw/mgit/command"
 	"github.com/marcelfw/mgit/repository"
 	go_ini "github.com/vaughan0/go-ini"
@@ -81,7 +82,7 @@ func readConfigs() {
 	}
 }
 
-func reduceConfigs(regexp regexp.Regexp, reduceFunc func([]string, map[string]string), configArrays ...configFiles) {
+func reduceConfigs(regexp regexp.Regexp, reduceFunc func(string, []string, map[string]string), configArrays ...configFiles) {
 	for _, configs := range configArrays {
 		for _, config := range configs {
 			for name, vars := range config.config {
@@ -93,7 +94,7 @@ func reduceConfigs(regexp regexp.Regexp, reduceFunc func([]string, map[string]st
 							vars["root"] = path.Join(dir, value)
 						}
 					}
-					reduceFunc(match, vars)
+					reduceFunc(config.file, match, vars)
 				}
 			}
 		}
@@ -105,9 +106,10 @@ func reduceConfigs(regexp regexp.Regexp, reduceFunc func([]string, map[string]st
 func readShortcutFromConfiguration(shortcut string) (map[string]string, bool) {
 	var filterMap map[string]string
 
-	var mapFunc = func(match []string, vars map[string]string) {
+	var mapFunc = func(file string, match []string, vars map[string]string) {
 		if len(match) >= 2 && match[1] == shortcut {
 			if filterMap == nil {
+				log.Printf("reading shortcut \"%s\" from \"%s\"", shortcut, file)
 				filterMap = vars
 			}
 		}
@@ -118,12 +120,12 @@ func readShortcutFromConfiguration(shortcut string) (map[string]string, bool) {
 	return filterMap, filterMap != nil
 }
 
-// readShortcutFromConfiguration reads the configuration and return the filter for the shortcut.
+// readLocalConfiguration reads the configuration and return the first "local" section it finds.
 // return bool false if something went wrong.
 func readLocalConfiguration() (map[string]string, bool) {
 	var filterMap map[string]string
 
-	var mapFunc = func(match []string, vars map[string]string) {
+	var mapFunc = func(file string, match []string, vars map[string]string) {
 		if len(match) >= 1 {
 			if filterMap == nil {
 				filterMap = vars
@@ -132,9 +134,6 @@ func readLocalConfiguration() (map[string]string, bool) {
 	}
 
 	reduceConfigs(*localRegexp, mapFunc, parentConfigs, globalConfigs)
-
-	if filterMap != nil {
-	}
 
 	return filterMap, filterMap != nil
 }
@@ -170,7 +169,11 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	var filterMap map[string]string
 
 	if shortcut != "" {
-		filterMap, _ = readShortcutFromConfiguration(shortcut)
+		filterMap, ok = readShortcutFromConfiguration(shortcut)
+		if !ok {
+			fmt.Printf("Shortcut \"%s\" not found.\n", shortcut)
+			return command, false, args, repositoryFilter, false
+		}
 	} else {
 		filterMap, ok = readLocalConfiguration()
 	}
@@ -179,7 +182,7 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	}
 
 	if mgitFlags.NArg() == 0 {
-		log.Fatal("Could not find command to execute.")
+		fmt.Print("Could not find command to execute.\n")
 		return command, false, args, repositoryFilter, false
 	}
 
@@ -237,7 +240,7 @@ func createCommand(vars map[string]string) (repository.Command, bool) {
 
 // AddConfigCommands add commands from the configuration files to the command list.
 func AddConfigCommands(commands map[string]repository.Command) map[string]repository.Command {
-	var cmdFunc = func(match []string, vars map[string]string) {
+	var cmdFunc = func(file string, match []string, vars map[string]string) {
 		if len(match) >= 2 {
 			if command, ok := createCommand(vars); ok {
 				commands[match[1]] = command
