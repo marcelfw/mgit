@@ -28,7 +28,7 @@ func (cmd cmdExec) Usage() string {
 func (cmd cmdExec) Help() string {
 	return `Execute a command.
 
-Parses the rest of the command-line and performs all macro conversion befor execution.`
+Performs macro conversion and runs the command(s).`
 }
 
 func (cmd cmdExec) Init(args []string) (outCmd repository.Command) {

@@ -9,6 +9,7 @@ import (
 	"github.com/marcelfw/mgit/engine"
 	"github.com/marcelfw/mgit/filter"
 	"github.com/marcelfw/mgit/repository"
+	"sort"
 )
 
 // git commands non-interactive we automatically pass-through
@@ -35,11 +36,17 @@ func Usage(filters []repository.FilterDefinition, commands map[string]repository
 
 	cmdTable := make([][]string, 0, len(commands))
 
-	for name, command := range commands {
+	names := make([]string, 0, len(commands))
+	for name := range commands {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
 		usage := make([]string, 2, 2)
 
 		usage[0] = "  " + name
-		usage[1] = command.Usage()
+		usage[1] = commands[name].Usage()
 
 		cmdTable = append(cmdTable, usage)
 	}
