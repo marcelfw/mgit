@@ -74,3 +74,40 @@ func ReturnTextTable(header []string, rows [][]string) string {
 
 	return buffer.String()
 }
+
+func FormatRow(name string, value string) interface{} {
+	lines := strings.Split(value, "\n")
+
+	switch {
+	case len(lines) == 0 || (len(lines) == 1 && value == ""):
+		columns := make([]string, 2, 2)
+		columns[0] = name
+		columns[1] = "<no output>"
+		return columns
+	case len(lines) == 1:
+		columns := make([]string, 2, 2)
+		columns[0] = name
+		columns[1] = value
+		return columns
+	default:
+		rows := make([][]string, 0, len(lines))
+		for idx, line := range lines {
+			columns := make([]string, 2, 2)
+			var pre string // pre is used to hopefully make it easier to see the lines belong together
+			switch {
+			case idx == 0:
+				columns[0] = name
+				pre = "   "
+			case idx == len(lines)-1:
+				pre = "\\_ "
+			default:
+				pre = "|  "
+			}
+			columns[1] = pre + strings.TrimSpace(line)
+			rows = append(rows, columns)
+		}
+		return rows
+	}
+
+	return nil
+}

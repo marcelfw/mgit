@@ -25,6 +25,7 @@ Examples
     # Mirror all repositories to your NAS.
     # 1. Create script and feed into NAS with ssh (shell should allow for git init).
     mgit -noremote mynas echo "mkdir -p {{ .Name }}.git ; git init --bare {{ .Name }}.git" | ssh git@mynas
+    mgit -debug -s tt exec ssh git@192.168.2.100 mkdir -p "{{ .Name }}" \; git init --bare "{{ .Name }}"
     # 2. Add remote "mynas" to all repositories which don't have it yet.
     mgit -noremote mynas remote add mynas "ssh://git@mynas/home/git/{{ .Name }}.git"
     # 3. Push everything.

@@ -28,6 +28,11 @@ func main() {
 	filterDefs := config.GetFilterDefs()
 	commands := config.GetCommands()
 
+	if len(os.Args) == 1 {
+		fmt.Print(config.Usage(filterDefs, commands))
+		return
+	}
+
 	textCommand, flagInteractive, args, filter, ok := config.ParseCommandline(os.Args[1:], filterDefs)
 	if ok == false {
 		return
@@ -36,7 +41,7 @@ func main() {
 	var curCommand repository.Command
 	if curCommand, ok = commands[textCommand]; ok == false {
 		log.Printf("No such command \"%s\"", textCommand)
-		config.Usage(commands)
+		fmt.Print(config.Usage(filterDefs, commands))
 		return
 	}
 

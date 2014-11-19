@@ -29,8 +29,11 @@ func (filter filterTag) Name() string {
 	return filter.name
 }
 
-func (filter filterTag) Usage() string {
-	return "Filter on the present of a tag."
+func (filter filterTag) Usage() map[string]string {
+	return map[string]string{
+		"-tag":   "Match when tag is found.",
+		"-notag": "Match only when tag is not found.",
+	}
 }
 
 func (filter filterTag) AddFlags(flags *flag.FlagSet) repository.Filter {

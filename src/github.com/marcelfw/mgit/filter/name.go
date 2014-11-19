@@ -25,8 +25,10 @@ func (filter filterName) Name() string {
 	return filter.name
 }
 
-func (filter filterName) Usage() string {
-	return "Filter on the name of the repository."
+func (filter filterName) Usage() map[string]string {
+	return map[string]string{
+		"-name": "Match on partial name match.",
+	}
 }
 
 func (filter filterName) AddFlags(flags *flag.FlagSet) repository.Filter {

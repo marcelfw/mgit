@@ -38,8 +38,11 @@ func (filter filterRemote) Name() string {
 	return filter.name
 }
 
-func (filter filterRemote) Usage() string {
-	return "Filter on presence of remote."
+func (filter filterRemote) Usage() map[string]string {
+	return map[string]string{
+		"-remote":   "Match when remote is found.",
+		"-noremote": "Match only when remote is not found.",
+	}
 }
 
 func (filter filterRemote) AddFlags(flags *flag.FlagSet) repository.Filter {

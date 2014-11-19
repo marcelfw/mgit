@@ -5,25 +5,33 @@
 package config
 
 import (
-	"fmt"
 	"github.com/marcelfw/mgit/command"
 	"github.com/marcelfw/mgit/engine"
 	"github.com/marcelfw/mgit/filter"
 	"github.com/marcelfw/mgit/repository"
-	"os"
 )
 
 // git commands non-interactive we automatically pass-through
 var gitPassThru = []string{"status", "fetch", "push", "pull", "log", "commit", "add", "remote", "branch", "archive", "tag"}
 
 // Usage returns the usage for the program.
-func Usage(commands map[string]repository.Command) {
-	fmt.Fprintf(os.Stderr, `usage: mgit [-s <shortcut-name>] [-root <root-directory>] -d <max-depth>
-            [-branch <branch>] [-remote <remote>] [-nobranch <no-branch>] [-noremote <no-remote>]
-            <command> [<args>]
+func Usage(filters []repository.FilterDefinition, commands map[string]repository.Command) string {
+	textBas := `usage: mgit [<filters>] <command> [<args>]
 
-Commands are:
-`)
+`
+
+	filTable := make([][]string, 0, len(filters)*2+5)
+	filTable = append(filTable, []string{"  -s", "Read shortcut for filters."})
+	filTable = append(filTable, []string{"  -root", "Root directory to search from."})
+	filTable = append(filTable, []string{"  -debug", "Show debug output."})
+	filTable = append(filTable, []string{"  -i", "Assume command is interactive."})
+	for _, filter := range filters {
+		for flag, help := range filter.Usage() {
+			filTable = append(filTable, []string{"  " + flag, help})
+		}
+
+	}
+	textFil := "Filters are:\n" + engine.ReturnTextTable(nil, filTable)
 
 	cmdTable := make([][]string, 0, len(commands))
 
@@ -36,7 +44,9 @@ Commands are:
 		cmdTable = append(cmdTable, usage)
 	}
 
-	fmt.Fprint(os.Stdout, engine.ReturnTextTable(nil, cmdTable))
+	textCmd := "\nCommands are:\n" + engine.ReturnTextTable(nil, cmdTable)
+
+	return textBas + textFil + textCmd
 }
 
 // getFilters returns all filters.
@@ -57,6 +67,7 @@ func GetCommands() map[string]repository.Command {
 
 	cmds["help"] = command.NewHelpCommand()
 	cmds["echo"] = command.NewEchoCommand()
+	cmds["exec"] = command.NewExecCommand()
 	cmds["list"] = command.NewListCommand()
 	cmds["version"] = command.NewVersionCommand()
 

@@ -5,6 +5,7 @@
 package command
 
 import (
+	"github.com/marcelfw/mgit/engine"
 	"github.com/marcelfw/mgit/repository"
 	"os/exec"
 	"strings"
@@ -107,44 +108,5 @@ func (cmd cmdGitProxy) Header() []string {
 
 // Output returns the result of the command
 func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
-	name := repository.Name
-	if name == "" {
-		name = "(root)"
-	}
-
-	output := repository.GetInfo("proxy." + cmd.command).(string)
-	lines := strings.Split(output, "\n")
-
-	switch {
-	case len(lines) == 0 || (len(lines) == 1 && output == ""):
-		columns := make([]string, 2, 2)
-		columns[0] = name
-		columns[1] = "<>"
-		return columns
-	case len(lines) == 1:
-		columns := make([]string, 2, 2)
-		columns[0] = name
-		columns[1] = output
-		return columns
-	default:
-		rows := make([][]string, 0, len(lines))
-		for idx, line := range lines {
-			columns := make([]string, 2, 2)
-			var pre string // pre is used to hopefully make it easier to see the lines belong together
-			switch {
-			case idx == 0:
-				columns[0] = name
-				pre = "   "
-			case idx == len(lines)-1:
-				pre = "\\_ "
-			default:
-				pre = "|  "
-			}
-			columns[1] = pre + strings.TrimSpace(line)
-			rows = append(rows, columns)
-		}
-		return rows
-	}
-
-	return nil
+	return engine.FormatRow(repository.Name, repository.GetInfo("proxy."+cmd.command).(string))
 }

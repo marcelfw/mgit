@@ -10,7 +10,7 @@ import "flag"
 type FilterDefinition interface {
 	Name() string // name of the filter
 
-	Usage() string // short string describing the usage
+	Usage() map[string]string // usage for each flag
 
 	// Add flags for the command-line parser.
 	AddFlags(*flag.FlagSet) Filter

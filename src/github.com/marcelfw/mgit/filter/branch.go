@@ -29,8 +29,11 @@ func (filter filterBranch) Name() string {
 	return filter.name
 }
 
-func (filter filterBranch) Usage() string {
-	return "Filter on the present of a branch."
+func (filter filterBranch) Usage() map[string]string {
+	return map[string]string{
+		"-branch":   "Match when branch is found.",
+		"-nobranch": "Match only when branch is not found.",
+	}
 }
 
 func (filter filterBranch) AddFlags(flags *flag.FlagSet) repository.Filter {
