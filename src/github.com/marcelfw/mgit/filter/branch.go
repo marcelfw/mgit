@@ -69,11 +69,21 @@ func (filter filterBranch) FilterRepository(repos repository.Repository) bool {
 	branches := getBranches(repos)
 
 	if *filter.branch != "" {
+		if *filter.branch == "master" {
+			// there might not be any refs yet for "master"
+			// master is always assumed to be there
+			return true
+		}
 		if _, ok := branches[*filter.branch]; !ok {
 			return false
 		}
 	}
 	if *filter.nobranch != "" {
+		if *filter.nobranch == "master" {
+			// master is always assumed to be there
+			// (so this basically filters everything away)
+			return false
+		}
 		if _, ok := branches[*filter.nobranch]; ok {
 			return false
 		}

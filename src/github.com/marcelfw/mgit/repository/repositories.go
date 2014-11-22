@@ -35,35 +35,49 @@ func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath
 	no_of_repositories := 0
 
 	return func(vpath string, f os.FileInfo, err error) error {
+		name := ""
 		base := path.Base(vpath)
-		if base == ".git" {
-			// Name is Git-directory without rootDirectory.
-			name := strings.TrimPrefix(path.Dir(vpath), filter.rootDirectory)
+		gitPath := path.Dir(vpath)
+
+		// Name is Git-directory without rootDirectory.
+		if gitPath != ".git" {
+			name = strings.TrimPrefix(gitPath, filter.rootDirectory)
 			name = strings.TrimLeft(name, "/")
+			name = strings.TrimSuffix(name, "/.git")
 			if filter.depth > 0 && (strings.Count(name, "/")+1) > filter.depth {
 				// if depth limit is set, ignore directories too deep.
 				log.Printf("Skipping repository \"%s\" (filtered by depth)", name)
 				return nil
 			}
-			if repository, ok := NewRepository(no_of_repositories, name, vpath); ok {
-				var allow = true
-				for _, filter := range filter.filters {
-					if filter.FilterRepository(repository) == false {
-						allow = false
-						if filterdef, ok := filter.(FilterDefinition); ok {
-							log.Printf("Skipping repository \"%s\" (filtered by %v)", name, filterdef.Name())
-						}
-						break
-					}
-				}
+		}
 
-				if allow {
-					log.Printf("Found repository \"%s\"", name)
-					no_of_repositories++
-					reposChannel <- repository
-				}
+		var repository Repository
+		foundRepository := false
+		if base == "HEAD" {
+			if _, err := os.Stat(path.Dir(vpath) + "/config"); err == nil {
+				repository, foundRepository = NewRepository(no_of_repositories, name, gitPath)
 			}
 		}
+
+		if foundRepository {
+			var allow = true
+			for _, filter := range filter.filters {
+				if filter.FilterRepository(repository) == false {
+					allow = false
+					if filterdef, ok := filter.(FilterDefinition); ok {
+						log.Printf("Skipping repository \"%s\" (filtered by %v)", name, filterdef.Name())
+					}
+					break
+				}
+			}
+
+			if allow {
+				log.Printf("Found repository \"%s\"", name)
+				no_of_repositories++
+				reposChannel <- repository
+			}
+		}
+
 		return nil
 	}
 }
