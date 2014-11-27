@@ -27,7 +27,7 @@ type Command interface {
 	Usage() string // short string describing the usage
 	Help() string  // help info
 
-	Init(args []string) Command
+	Init(args []string, interactive bool) Command
 }
 
 // RepositoryCommand is the interface used commands that act on repositories.
@@ -51,11 +51,6 @@ type LineOutputCommand interface {
 	Footer() string
 
 	Output(Repository) string
-}
-
-// InteractiveCommand is a special command that could be run interactively.
-type InteractiveCommand interface {
-	ForceInteractive() // Force command to be run interactive
 }
 
 // InfoCommand is a special command that shows internal info.

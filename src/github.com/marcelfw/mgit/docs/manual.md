@@ -69,17 +69,27 @@ See tips and tricks to find useful examples on how to use this.
 
 #### Exec
 
-Exec allows you to execute any command
+Exec allows you to execute any command. The working directory for the command is the actual repository directory. Just like “echo” you can use Go text templating.
+
+Show the disk usage for all found repositories:
+
+    mgit exec du -h -d 0
 
 #### Git commands
 
-These are Git commands which are currently builtin. Unless the "interactive" option has been enabled, the command
+These are Git commands which are currently builtin. The command
 will be run parallel for each found repository.
-If you specific "-i" before the command, mgit will assume it has to run interactively and will not parallize it.
+Default Git commands available:
 
 * status, log, commit, add
 * fetch, pull, push
 * remote, branch, tag
+
+If you specific "-i" before the command, mgit will assume it has to run interactively and will not parallize it.
+
+Run vi for each found repository:
+
+    mgit -i exec vi .git/config
 
 
 Configuration
@@ -108,9 +118,6 @@ It is adviced to never name your custom command after a normal git command.
 
 Usage examples
 --------------
-
-    # Show repository sizes
-    mgit exec du -h -d 0
 
     # Copy all your development branches to your laptop.
     mgit -branch develop -remote laptop push laptop

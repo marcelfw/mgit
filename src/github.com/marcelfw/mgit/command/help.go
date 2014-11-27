@@ -31,7 +31,7 @@ func (cmd cmdHelp) Help() string {
 Add command as argument to help for more information about the command.`
 }
 
-func (cmd cmdHelp) Init(args []string) (outCmd repository.Command) {
+func (cmd cmdHelp) Init(args []string, interactive bool) (outCmd repository.Command) {
 	if len(args) >= 1 {
 		cmd.command = args[0]
 		return cmd

@@ -35,7 +35,7 @@ Shown are:
   Subject  Subject of last commit`
 }
 
-func (cmd cmdList) Init(args []string) (outCmd repository.Command) {
+func (cmd cmdList) Init(args []string, interactive bool) (outCmd repository.Command) {
 	// we don't do anything
 	return nil
 }

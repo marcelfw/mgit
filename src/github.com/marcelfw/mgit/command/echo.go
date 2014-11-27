@@ -30,7 +30,7 @@ Parses the rest of the command-line and performs all macro conversion.
 Useful for testing macros.`
 }
 
-func (cmd cmdEcho) Init(args []string) (outCmd repository.Command) {
+func (cmd cmdEcho) Init(args []string, interactive bool) (outCmd repository.Command) {
 	cmd.args = args
 	return cmd
 }

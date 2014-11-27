@@ -64,17 +64,14 @@ func (cmd cmdGitProxy) Help() string {
 	return cmd.help
 }
 
-func (cmd cmdGitProxy) Init(args []string) (outCmd repository.Command) {
+func (cmd cmdGitProxy) Init(args []string, interactive bool) (outCmd repository.Command) {
 	cmd.args = append(cmd.args, args...)
+	cmd.interactive = interactive
 	return cmd
 }
 
 func (cmd cmdGitProxy) IsInteractive() bool {
 	return cmd.interactive
-}
-
-func (cmd cmdGitProxy) ForceInteractive() {
-	cmd.interactive = true
 }
 
 func (cmd cmdGitProxy) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {

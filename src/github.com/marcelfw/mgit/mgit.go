@@ -36,14 +36,8 @@ func main() {
 		return
 	}
 
-	if flagInteractive {
-		if iCommand, ok := curCommand.(repository.InteractiveCommand); ok {
-			iCommand.ForceInteractive()
-		}
-	}
-
 	// Let the command initialize itself with the arguments.
-	initResult := curCommand.Init(args)
+	initResult := curCommand.Init(args, flagInteractive)
 	// @note no pointer receiver so for now we do this
 	if newCommand, ok := initResult.(repository.Command); ok == true {
 		curCommand = newCommand

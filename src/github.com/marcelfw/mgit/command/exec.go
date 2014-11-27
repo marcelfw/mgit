@@ -7,12 +7,15 @@ package command
 import (
 	"github.com/marcelfw/mgit/engine"
 	"github.com/marcelfw/mgit/repository"
+	"os"
 	"os/exec"
 	"strings"
 )
 
 type cmdExec struct {
 	args []string
+
+	interactive bool
 }
 
 func NewExecCommand() cmdExec {
@@ -31,13 +34,14 @@ func (cmd cmdExec) Help() string {
 Performs macro conversion and runs the command(s).`
 }
 
-func (cmd cmdExec) Init(args []string) (outCmd repository.Command) {
+func (cmd cmdExec) Init(args []string, interactive bool) (outCmd repository.Command) {
 	cmd.args = args
+	cmd.interactive = interactive
 	return cmd
 }
 
 func (cmd cmdExec) IsInteractive() bool {
-	return false
+	return cmd.interactive
 }
 
 func (cmd cmdExec) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
@@ -45,11 +49,29 @@ func (cmd cmdExec) Run(repository repository.Repository) (outRepository reposito
 	extCmd := exec.Command(args[0], args[1:]...)
 	extCmd.Dir = repository.GetPath()
 
-	result, err := extCmd.CombinedOutput()
-	if err == nil {
-		repository.PutInfo("exec", strings.TrimSpace(string(result)))
+	repository.PutInfo("exec", "")
+
+	if cmd.interactive {
+		extCmd.Stdin = os.Stdin
+		extCmd.Stdout = os.Stdout
+		extCmd.Stderr = os.Stderr
+
+		if err := extCmd.Start(); err != nil {
+			repository.PutInfo("exec", err)
+			return repository, false
+		}
+
+		if err := extCmd.Wait(); err != nil {
+			repository.PutInfo("exec", err)
+			return repository, false
+		}
+
+		repository.PutInfo("exec", "Ok")
 	} else {
-		repository.PutInfo("exec", "")
+		result, err := extCmd.CombinedOutput()
+		if err == nil {
+			repository.PutInfo("exec", strings.TrimSpace(string(result)))
+		}
 	}
 	return repository, true
 }
