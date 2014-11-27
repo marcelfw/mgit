@@ -18,7 +18,7 @@ import (
 
 type Repository struct {
 	index int    // order in which repository was found
-	Name  string // assumed name of the repo
+	name  string // assumed name of the repo
 
 	path    string // root work directory
 	gitRoot string // actual git location
@@ -42,7 +42,7 @@ func (a ByIndex) Less(i, j int) bool { return a[i].index < a[j].index }
 func NewRepository(index int, name, gitpath string) (repository Repository, ok bool) {
 	ok = false
 	repository.index = index
-	repository.Name = name
+	repository.name = name
 	repository.path = path.Dir(gitpath)
 
 	if fi, err := os.Stat(gitpath); err == nil {
@@ -135,7 +135,7 @@ func (repository *Repository) PathMatch(match string) bool {
 
 // NameContains returns true if name contains search.
 func (repository *Repository) NameContains(search string) bool {
-	if strings.Contains(repository.Name, search) {
+	if strings.Contains(repository.name, search) {
 		return true
 	}
 	return false
@@ -144,6 +144,14 @@ func (repository *Repository) NameContains(search string) bool {
 // GetGitRoot returns repository .git root directory.
 func (repository *Repository) GetGitRoot() string {
 	return repository.gitRoot
+}
+
+// GetName returns repository name.
+func (repository *Repository) GetShowName() string {
+	if repository.name == "" {
+		return "(root)"
+	}
+	return repository.name
 }
 
 // GetPath returns repository root directory.
@@ -207,7 +215,7 @@ func (repository Repository) ReplaceMacros(args []string) (out []string) {
 	out = make([]string, len(args))
 
 	macros := make(map[string]string)
-	macros["Name"] = repository.Name
+	macros["Name"] = repository.name
 	macros["Path"] = repository.GetPath()
 	macros["CurrentBranch"] = repository.GetCurrentBranch()
 

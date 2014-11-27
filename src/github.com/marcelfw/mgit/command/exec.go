@@ -57,12 +57,12 @@ func (cmd cmdExec) Run(repository repository.Repository) (outRepository reposito
 func (cmd cmdExec) Header() []string {
 	columns := make([]string, 2, 2)
 
-	columns[0] = "Script"
+	columns[0] = "Repository"
 	columns[1] = "Output"
 
 	return columns
 }
 
 func (cmd cmdExec) Output(repository repository.Repository) interface{} {
-	return engine.FormatRow(repository.Name, repository.GetInfo("exec").(string))
+	return engine.FormatRow(repository.GetShowName(), repository.GetInfo("exec").(string))
 }

@@ -108,5 +108,5 @@ func (cmd cmdGitProxy) Header() []string {
 
 // Output returns the result of the command
 func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
-	return engine.FormatRow(repository.Name, repository.GetInfo("proxy."+cmd.command).(string))
+	return engine.FormatRow(repository.GetShowName(), repository.GetInfo("proxy."+cmd.command).(string))
 }

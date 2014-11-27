@@ -6,11 +6,12 @@ Mass git is a tool to run commands on multiple repositories, collect their outpu
 
 ### Filtering
 
-Repositories can be filtered by using the filters as described below. Filters can be combined as necessary.
+Repositories can be filtered by using the filters described below. Filters can be combined as needed.
 Every filter can be given on the command-line (prefix with -) or used in a shortcut ini-section.
 
-    root         specify root directory, inside shortcuts relative directories
-                 are taken from the location of the config file
+    root         specify root directory
+                 (inside shortcuts the relative root-directory
+                  is taken from the location of the config file)
     depth        maximum depth to recurse directories
     name         only when text partially matches repository name
 
@@ -28,20 +29,27 @@ Every filter can be given on the command-line (prefix with -) or used in a short
 
 An example on the command-line would be:
 
-    mgit -root . -branch develop list
+    mgit -root /Users/marcel/ -branch develop list
 
-Inside a configuration:
+With this shortcut defined:
 
     [shortcut "home"]
-    root = /Users/marcel/
-    remoteurl = github.com/marcelfw
+      root = /Users/marcel/
+      branch = develop
+
+It would be:
+
+    mgit -s home list
+
 
 
 ### Commands
 
-Mass git is mostly about just passing through actual Git commands and viewing the result is a nice view. So common git
-commands are available. However you can add others are create your own.
+Mass git is mostly about just passing regular git commands and viewing the result is a nice view. So common git
+commands are available. However you can add others commands or even add your own.
 Every mass git command has a name which doesn't conflict (except for help) with an actual git command. 
+
+A list of builtin commands:
 
 #### List
 
@@ -50,7 +58,7 @@ _last commit date_ and _last commit subject_.
 
 #### Echo
 
-Echo lets you customize your own output of the found repositories. Uses standard Go text templating.
+Echo lets you customise your own output of the found repositories. Uses standard Go text templating.
 The following values are provided: _Path_, _Name_ and _CurrentBranch_.
 
     mgit echo "{{ .Name }} - {{ .Path }} - {{ .CurrentBranch }}"
@@ -58,6 +66,10 @@ The following values are provided: _Path_, _Name_ and _CurrentBranch_.
 Simplified "list" output.
 
 See tips and tricks to find useful examples on how to use this.
+
+#### Exec
+
+Exec allows you to execute any command
 
 #### Git commands
 
@@ -96,6 +108,9 @@ It is adviced to never name your custom command after a normal git command.
 
 Usage examples
 --------------
+
+    # Show repository sizes
+    mgit exec du -h -d 0
 
     # Copy all your development branches to your laptop.
     mgit -branch develop -remote laptop push laptop
