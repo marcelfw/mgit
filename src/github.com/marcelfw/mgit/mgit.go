@@ -16,15 +16,6 @@ import (
 var version = "0.0.1"
 
 func main() {
-	/*
-		f, err := os.Create("mgit.pprof")
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	//*/
-
 	filterDefs := config.GetFilterDefs()
 	commands := config.GetCommands()
 
