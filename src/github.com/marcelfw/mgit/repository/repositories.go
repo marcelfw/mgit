@@ -5,10 +5,12 @@
 package repository
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -18,6 +20,12 @@ type RepositoryFilter struct {
 	depth         int
 
 	filters []Filter
+}
+
+var regexpWorktree *regexp.Regexp
+
+func init() {
+	regexpWorktree = regexp.MustCompile("worktree = (.+)")
 }
 
 // create a new RepositoryFilter
@@ -39,25 +47,57 @@ func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath
 		base := path.Base(vpath)
 		gitPath := path.Dir(vpath)
 
+		if f.IsDir() {
+			return nil
+		}
+
+		if base != "HEAD" {
+			return nil
+		}
+		var configFileInfo os.FileInfo
+		if configFileInfo, err = os.Stat(path.Dir(vpath) + "/config"); err != nil {
+			return nil
+		}
+		if configFileInfo.Size() > 40960 {
+			// ignore configs too big
+			log.Printf("Ignoring repository with this huge configuration \"%s\" (%d bytes)", vpath, configFileInfo.Size())
+			return nil
+		}
+
+		var content []byte
+		if content, err = ioutil.ReadFile(path.Dir(vpath) + "/config"); err != nil {
+			log.Printf("Could not read configuration \"%s\" (error %s)", vpath, err)
+			return nil
+		}
+
+		// resolve submodule worktree
+		match := regexpWorktree.FindStringSubmatch(string(content))
+		if len(match) >= 2 {
+			// we assume the submodule has a .git file here
+			gitPath = path.Clean(gitPath + "/" + match[1] + "/.git")
+			if fi, err := os.Stat(gitPath); err != nil {
+				return nil
+			} else {
+				if fi.IsDir() {
+					return nil
+				}
+			}
+		}
+
 		// Name is Git-directory without rootDirectory.
 		if gitPath != ".git" {
 			name = strings.TrimPrefix(gitPath, filter.rootDirectory)
 			name = strings.TrimLeft(name, "/")
 			name = strings.TrimSuffix(name, "/.git")
-			if filter.depth > 0 && (strings.Count(name, "/")+1) > filter.depth {
-				// if depth limit is set, ignore directories too deep.
-				log.Printf("Skipping repository \"%s\" (filtered by depth)", name)
-				return nil
-			}
 		}
 
-		var repository Repository
-		foundRepository := false
-		if base == "HEAD" {
-			if _, err := os.Stat(path.Dir(vpath) + "/config"); err == nil {
-				repository, foundRepository = NewRepository(no_of_repositories, name, gitPath)
-			}
+		if filter.depth > 0 && (strings.Count(name, "/")+1) > filter.depth {
+			// if depth limit is set, ignore directories too deep.
+			log.Printf("Skipping repository \"%s\" (filtered by depth)", name)
+			return nil
 		}
+
+		repository, foundRepository := NewRepository(no_of_repositories, name, gitPath)
 
 		if foundRepository {
 			var allow = true
