@@ -1,6 +1,6 @@
 // Copyright (c) 2014 Marcel Wouters
 
-// Package main glues everything together :-)
+// Mass Git - run commands on multiple repositories
 package main
 
 import (
