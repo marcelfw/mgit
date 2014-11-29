@@ -75,23 +75,22 @@ func (cmd cmdGitProxy) IsInteractive() bool {
 }
 
 func (cmd cmdGitProxy) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
-	var ok bool
-
 	args := repository.ReplaceMacros(cmd.args)
 
 	if cmd.interactive {
-		ok = repository.ExecGitInteractive(args...)
+		_ = repository.ExecGitInteractive(args...)
 
 		repository.PutInfo("proxy."+cmd.command, "(interactive command ran)")
 	} else {
 		var result string
 
-		result, ok = repository.ExecGit(args...)
+		// we just want the return anything, even if it is an error
+		result, _, _ = repository.ExecGit(args...)
 
 		repository.PutInfo("proxy."+cmd.command, strings.TrimSpace(result))
 	}
 
-	return repository, ok
+	return repository, true
 }
 
 func (cmd cmdGitProxy) Header() []string {
