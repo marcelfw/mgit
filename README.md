@@ -16,13 +16,13 @@ Examples
     # Get an overview of all customer code on your machine.
     mgit -root ~/customer list
 
-    # Alternatively use the regular git status commands.
+    # Alternatively use the regular git status command.
     mgit -root ~/customer status
 
     # Copy all your development branches to your laptop.
     mgit -branch develop -remote laptop push laptop
 
-    # Refresh all your github clones.
+    # Refresh your github clones.
     mgit -remotepath github.com/username pull
 
     # Mirror all repositories to your NAS.
@@ -41,7 +41,7 @@ Examples
 Getting started
 ---------------
 
-There is no binary release yet.
+There is no binary release yet. See next section.
 
 
 Installing from source
