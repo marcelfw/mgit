@@ -89,6 +89,7 @@ func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath
 			name = strings.TrimPrefix(gitPath, filter.rootDirectory)
 			name = strings.TrimLeft(name, "/")
 			name = strings.TrimSuffix(name, ".git")
+			name = strings.TrimSuffix(name, "/")
 		}
 
 		if filter.depth > 0 && (strings.Count(name, "/")+1) > filter.depth {
