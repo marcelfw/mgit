@@ -22,8 +22,9 @@ func Usage(filters []repository.FilterDefinition, commands map[string]repository
 `
 
 	filTable := make([][]string, 0, len(filters)*2+5)
-	filTable = append(filTable, []string{"  -s", "Read shortcut for filters."})
-	filTable = append(filTable, []string{"  -root", "Root directory to search from."})
+	filTable = append(filTable, []string{"  -s <shortcut>", "Read shortcut for filters."})
+	filTable = append(filTable, []string{"  -root <directory>", "Root directory to search from."})
+	filTable = append(filTable, []string{"  -depth <depth>", "Maximum depth to search in."})
 	filTable = append(filTable, []string{"  -debug", "Show debug output."})
 	filTable = append(filTable, []string{"  -i", "Assume command is interactive."})
 	for _, filter := range filters {

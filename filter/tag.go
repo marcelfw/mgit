@@ -31,8 +31,8 @@ func (filter filterTag) Name() string {
 
 func (filter filterTag) Usage() map[string]string {
 	return map[string]string{
-		"-tag":   "Match when tag is found.",
-		"-notag": "Match only when tag is not found.",
+		"-tag <tag>":   "Match when tag is found.",
+		"-notag <tag>": "Match only when tag is not found.",
 	}
 }
 

@@ -27,7 +27,7 @@ func (filter filterName) Name() string {
 
 func (filter filterName) Usage() map[string]string {
 	return map[string]string{
-		"-name": "Match on partial name match.",
+		"-name <partial-name>": "Match on partial name match.",
 	}
 }
 
