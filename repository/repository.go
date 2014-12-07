@@ -152,6 +152,9 @@ func (repository *Repository) GetPath() string {
 
 // GetCurrentBranch returns the current branch.
 func (repository *Repository) GetCurrentBranch() string {
+	if repository.currentBranch == "" {
+		repository.RetrieveBasics()
+	}
 	return repository.currentBranch
 }
 
