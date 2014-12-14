@@ -6,10 +6,11 @@ package filter
 
 import (
 	"flag"
-	"github.com/marcelfw/mgit/repository"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/marcelfw/mgit/repository"
 )
 
 type filterTag struct {
@@ -19,6 +20,7 @@ type filterTag struct {
 	notag *string
 }
 
+// NewTagFilter returns a new filterTag filter.
 func NewTagFilter() filterTag {
 	filter := filterTag{name: "tag"}
 

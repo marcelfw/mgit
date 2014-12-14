@@ -6,6 +6,7 @@ package filter
 
 import (
 	"flag"
+
 	"github.com/marcelfw/mgit/repository"
 )
 
@@ -15,6 +16,7 @@ type filterName struct {
 	match *string
 }
 
+// NewNameFilter returns a new filterName filter.
 func NewNameFilter() filterName {
 	filter := filterName{name: "name"}
 

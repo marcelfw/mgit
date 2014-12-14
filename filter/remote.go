@@ -6,9 +6,10 @@ package filter
 
 import (
 	"flag"
-	"github.com/marcelfw/mgit/repository"
 	"regexp"
 	"strings"
+
+	"github.com/marcelfw/mgit/repository"
 )
 
 type filterRemote struct {
@@ -28,6 +29,7 @@ func init() {
 	remoteRegexp = regexp.MustCompile("remote \"(.+)\"")
 }
 
+// NewRemoteFilter returns a new filterRemote filter.
 func NewRemoteFilter() filterRemote {
 	filter := filterRemote{name: "remote"}
 

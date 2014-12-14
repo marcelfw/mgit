@@ -5,15 +5,16 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/marcelfw/mgit/config"
 	"github.com/marcelfw/mgit/engine"
 	"github.com/marcelfw/mgit/repository"
-	"log"
-	"os"
 )
 
 // current version
-var version = "0.2.0"
+var version = "0.3.0"
 
 func main() {
 	filterDefs := config.GetFilterDefs()

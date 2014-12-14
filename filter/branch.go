@@ -6,11 +6,12 @@ package filter
 
 import (
 	"flag"
-	"github.com/marcelfw/mgit/repository"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/marcelfw/mgit/repository"
 )
 
 type filterBranch struct {
@@ -21,6 +22,7 @@ type filterBranch struct {
 	nobranch *string
 }
 
+// NewBranchFilter returns a new filterBranch filter.
 func NewBranchFilter() filterBranch {
 	filter := filterBranch{name: "branch"}
 
