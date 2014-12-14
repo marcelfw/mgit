@@ -33,8 +33,9 @@ func (filter filterBranch) Name() string {
 
 func (filter filterBranch) Usage() map[string]string {
 	return map[string]string{
-		"-branch <branch>":   "Match when branch is found.",
-		"-nobranch <branch>": "Match only when branch is not found.",
+		"-current <branch>":  "Match when <branch> is current.",
+		"-branch <branch>":   "Match when <branch> is found.",
+		"-nobranch <branch>": "Match only when <branch> is not found.",
 	}
 }
 

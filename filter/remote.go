@@ -40,10 +40,10 @@ func (filter filterRemote) Name() string {
 
 func (filter filterRemote) Usage() map[string]string {
 	return map[string]string{
-		"-remote <remote>":           "Match when remote is found.",
-		"-noremote <remote>":         "Match only when remote is not found.",
-		"-remoteurl <partial-url>":   "Match when text matched remote url.",
-		"-noremoteurl <partial-url>": "Match only when text does not match remote url.",
+		"-remote <remote>":           "Match when <remote> is found.",
+		"-noremote <remote>":         "Match only when <remote> is not found.",
+		"-remoteurl <partial-url>":   "Match when text matched <remoteurl>.",
+		"-noremoteurl <partial-url>": "Match only when text does not match <remoteurl>.",
 	}
 }
 
