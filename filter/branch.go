@@ -10,11 +10,13 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 )
 
 type filterBranch struct {
 	name string
 
+	current  *string
 	branch   *string
 	nobranch *string
 }
@@ -37,6 +39,7 @@ func (filter filterBranch) Usage() map[string]string {
 }
 
 func (filter filterBranch) AddFlags(flags *flag.FlagSet) repository.Filter {
+	filter.current = flags.String("current", "", "select only when current matches")
 	filter.branch = flags.String("branch", "", "select only with this branch")
 	filter.nobranch = flags.String("nobranch", "", "select only without this branch")
 
@@ -67,6 +70,14 @@ func getBranches(repository repository.Repository) (branches map[string]bool) {
 
 func (filter filterBranch) FilterRepository(repos repository.Repository) bool {
 	branches := getBranches(repos)
+
+	if *filter.current != "" {
+		if branch, _, ok := repos.ExecGit("rev-parse", "--abbrev-ref", "HEAD"); ok {
+			if *filter.current != strings.TrimRight(branch, "\r\n") {
+				return false
+			}
+		}
+	}
 
 	if *filter.branch != "" {
 		if *filter.branch == "master" {
