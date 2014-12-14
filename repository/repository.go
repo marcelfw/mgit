@@ -23,6 +23,7 @@ type Repository struct {
 	path    string // root work directory
 	gitRoot string // actual git location
 
+	haveBasics    bool   // detect if we ran basics already
 	currentBranch string // store the current branch
 	status        string // store the porcelain status
 
@@ -122,6 +123,8 @@ func (repository *Repository) RetrieveBasics() {
 	}
 	repository.status, _, _ = repository.ExecGit("status", "--porcelain")
 
+	repository.haveBasics = true
+
 }
 
 // NameContains returns true if name contains search.
@@ -152,10 +155,18 @@ func (repository *Repository) GetPath() string {
 
 // GetCurrentBranch returns the current branch.
 func (repository *Repository) GetCurrentBranch() string {
-	if repository.currentBranch == "" {
+	if !repository.haveBasics {
 		repository.RetrieveBasics()
 	}
 	return repository.currentBranch
+}
+
+// GetCurrentBranch returns the current branch.
+func (repository *Repository) GetStatus() string {
+	if !repository.haveBasics {
+		repository.RetrieveBasics()
+	}
+	return repository.status
 }
 
 // GetStatusJudgement judges the current status.
@@ -164,7 +175,7 @@ func (repository *Repository) GetStatusJudgement() string {
 	var staged bool
 	var unstaged bool
 	var untracked bool
-	lines := strings.Split(repository.status, "\n")
+	lines := strings.Split(repository.GetStatus(), "\n")
 	for _, line := range lines {
 		if len(line) >= 2 {
 			switch {
