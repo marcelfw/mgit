@@ -60,8 +60,6 @@ func (cmd cmdList) IsInteractive() bool {
 }
 
 func (cmd cmdList) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
-	repository.RetrieveBasics()
-
 	log, _, _ := repository.ExecGit("log", "--max-count=1", "--format=%an : %ae : %at : %s")
 	results := strings.SplitN(strings.TrimRight(log, "\r\n"), " : ", 4)
 
