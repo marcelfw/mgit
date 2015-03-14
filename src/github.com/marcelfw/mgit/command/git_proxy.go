@@ -5,14 +5,16 @@
 package command
 
 import (
-	"github.com/marcelfw/mgit/engine"
-	"github.com/marcelfw/mgit/repository"
 	"os/exec"
 	"strings"
+
+	"github.com/marcelfw/mgit/engine"
+	"github.com/marcelfw/mgit/repository"
 )
 
 type cmdGitProxy struct {
 	interactive bool
+	dryrun      bool
 
 	command string
 	args    []string
@@ -64,9 +66,10 @@ func (cmd cmdGitProxy) Help() string {
 	return cmd.help
 }
 
-func (cmd cmdGitProxy) Init(args []string, interactive bool) (outCmd repository.Command) {
+func (cmd cmdGitProxy) Init(args []string, interactive bool, dryrun bool) (outCmd repository.Command) {
 	cmd.args = append(cmd.args, args...)
 	cmd.interactive = interactive
+	cmd.dryrun = dryrun
 	return cmd
 }
 
@@ -75,26 +78,34 @@ func (cmd cmdGitProxy) IsInteractive() bool {
 }
 
 func (cmd cmdGitProxy) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
-	var ok bool
-
 	args := repository.ReplaceMacros(cmd.args)
 
+	if cmd.dryrun {
+		repository.PutInfo("proxy."+cmd.command, "cd "+repository.GetAbsPath()+"\ngit "+strings.Join(args, " "))
+		return repository, true
+	}
+
 	if cmd.interactive {
-		ok = repository.ExecGitInteractive(args...)
+		_ = repository.ExecGitInteractive(args...)
 
 		repository.PutInfo("proxy."+cmd.command, "(interactive command ran)")
 	} else {
 		var result string
 
-		result, ok = repository.ExecGit(args...)
+		// we just want the return anything, even if it is an error
+		result, _, _ = repository.ExecGit(args...)
 
 		repository.PutInfo("proxy."+cmd.command, strings.TrimSpace(result))
 	}
 
-	return repository, ok
+	return repository, true
 }
 
 func (cmd cmdGitProxy) Header() []string {
+	if cmd.dryrun {
+		return nil
+	}
+
 	columns := make([]string, 2, 2)
 
 	columns[0] = strings.Title(cmd.command)
@@ -105,5 +116,8 @@ func (cmd cmdGitProxy) Header() []string {
 
 // Output returns the result of the command
 func (cmd cmdGitProxy) Output(repository repository.Repository) interface{} {
+	if cmd.dryrun {
+		return repository.GetInfo("proxy." + cmd.command).(string)
+	}
 	return engine.FormatRow(repository.GetShowName(), repository.GetInfo("proxy."+cmd.command).(string))
 }

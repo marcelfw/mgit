@@ -1,19 +1,20 @@
 // Copyright (c) 2014 Marcel Wouters
 
-// Package main glues everything together :-)
+// Mass Git - run commands on multiple repositories
 package main
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/marcelfw/mgit/config"
 	"github.com/marcelfw/mgit/engine"
 	"github.com/marcelfw/mgit/repository"
-	"log"
-	"os"
 )
 
 // current version
-var version = "0.0.1"
+var version = "0.3.0"
 
 func main() {
 	filterDefs := config.GetFilterDefs()
@@ -24,7 +25,7 @@ func main() {
 		return
 	}
 
-	textCommand, flagInteractive, args, filter, ok := config.ParseCommandline(os.Args[1:], filterDefs)
+	textCommand, flagInteractive, flagDryRun, args, filter, ok := config.ParseCommandline(os.Args[1:], filterDefs)
 	if ok == false {
 		return
 	}
@@ -37,7 +38,7 @@ func main() {
 	}
 
 	// Let the command initialize itself with the arguments.
-	initResult := curCommand.Init(args, flagInteractive)
+	initResult := curCommand.Init(args, flagInteractive, flagDryRun)
 	// @note no pointer receiver so for now we do this
 	if newCommand, ok := initResult.(repository.Command); ok == true {
 		curCommand = newCommand

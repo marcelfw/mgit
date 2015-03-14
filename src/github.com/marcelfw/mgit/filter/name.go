@@ -6,6 +6,7 @@ package filter
 
 import (
 	"flag"
+
 	"github.com/marcelfw/mgit/repository"
 )
 
@@ -15,6 +16,7 @@ type filterName struct {
 	match *string
 }
 
+// NewNameFilter returns a new filterName filter.
 func NewNameFilter() filterName {
 	filter := filterName{name: "name"}
 
@@ -27,7 +29,7 @@ func (filter filterName) Name() string {
 
 func (filter filterName) Usage() map[string]string {
 	return map[string]string{
-		"-name": "Match on partial name match.",
+		"-name <partial-name>": "Match on partial name match.",
 	}
 }
 

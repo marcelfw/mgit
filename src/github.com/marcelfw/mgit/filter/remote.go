@@ -6,9 +6,10 @@ package filter
 
 import (
 	"flag"
-	"github.com/marcelfw/mgit/repository"
 	"regexp"
 	"strings"
+
+	"github.com/marcelfw/mgit/repository"
 )
 
 type filterRemote struct {
@@ -28,6 +29,7 @@ func init() {
 	remoteRegexp = regexp.MustCompile("remote \"(.+)\"")
 }
 
+// NewRemoteFilter returns a new filterRemote filter.
 func NewRemoteFilter() filterRemote {
 	filter := filterRemote{name: "remote"}
 
@@ -40,8 +42,10 @@ func (filter filterRemote) Name() string {
 
 func (filter filterRemote) Usage() map[string]string {
 	return map[string]string{
-		"-remote":   "Match when remote is found.",
-		"-noremote": "Match only when remote is not found.",
+		"-remote <remote>":           "Match when <remote> is found.",
+		"-noremote <remote>":         "Match only when <remote> is not found.",
+		"-remoteurl <partial-url>":   "Match when text matched <remoteurl>.",
+		"-noremoteurl <partial-url>": "Match only when text does not match <remoteurl>.",
 	}
 }
 

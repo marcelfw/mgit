@@ -27,7 +27,7 @@ type Command interface {
 	Usage() string // short string describing the usage
 	Help() string  // help info
 
-	Init(args []string, interactive bool) Command
+	Init(args []string, interactive bool, dryrun bool) Command
 }
 
 // RepositoryCommand is the interface used commands that act on repositories.

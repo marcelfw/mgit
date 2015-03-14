@@ -6,10 +6,11 @@ package filter
 
 import (
 	"flag"
-	"github.com/marcelfw/mgit/repository"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/marcelfw/mgit/repository"
 )
 
 type filterTag struct {
@@ -19,6 +20,7 @@ type filterTag struct {
 	notag *string
 }
 
+// NewTagFilter returns a new filterTag filter.
 func NewTagFilter() filterTag {
 	filter := filterTag{name: "tag"}
 
@@ -31,8 +33,8 @@ func (filter filterTag) Name() string {
 
 func (filter filterTag) Usage() map[string]string {
 	return map[string]string{
-		"-tag":   "Match when tag is found.",
-		"-notag": "Match only when tag is not found.",
+		"-tag <tag>":   "Match when <tag> is found.",
+		"-notag <tag>": "Match only when <tag> is not found.",
 	}
 }
 

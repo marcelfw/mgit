@@ -5,10 +5,11 @@
 package command
 
 import (
-	"github.com/marcelfw/mgit/repository"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/marcelfw/mgit/repository"
 )
 
 type cmdList struct {
@@ -35,7 +36,7 @@ Shown are:
   Subject  Subject of last commit`
 }
 
-func (cmd cmdList) Init(args []string, interactive bool) (outCmd repository.Command) {
+func (cmd cmdList) Init(args []string, interactive bool, dryrun bool) (outCmd repository.Command) {
 	// we don't do anything
 	return nil
 }
@@ -60,9 +61,7 @@ func (cmd cmdList) IsInteractive() bool {
 }
 
 func (cmd cmdList) Run(repository repository.Repository) (outRepository repository.Repository, output bool) {
-	repository.RetrieveBasics()
-
-	log, _ := repository.ExecGit("log", "--max-count=1", "--format=%an : %ae : %at : %s")
+	log, _, _ := repository.ExecGit("log", "--max-count=1", "--format=%an : %ae : %at : %s")
 	results := strings.SplitN(strings.TrimRight(log, "\r\n"), " : ", 4)
 
 	repository.PutInfo("list.name", "-")

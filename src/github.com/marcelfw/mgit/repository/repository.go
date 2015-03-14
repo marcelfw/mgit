@@ -6,7 +6,6 @@ package repository
 
 import (
 	"bytes"
-	go_ini "github.com/vaughan0/go-ini"
 	"io/ioutil"
 	"log"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"path"
 	"strings"
 	"text/template"
+
+	go_ini "github.com/vaughan0/go-ini"
 )
 
 type Repository struct {
@@ -23,6 +24,7 @@ type Repository struct {
 	path    string // root work directory
 	gitRoot string // actual git location
 
+	haveBasics    bool   // detect if we ran basics already
 	currentBranch string // store the current branch
 	status        string // store the porcelain status
 
@@ -79,16 +81,20 @@ func (repository *Repository) GetConfig() go_ini.File {
 	return repository.config
 }
 
-func (repository Repository) ExecGit(args ...string) (result string, ok bool) {
+func (repository Repository) ExecGit(args ...string) (result string, err error, ok bool) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = repository.path
 
+	log.Printf("[%s] executing git with arguments %v", repository.GetShowName(), args)
+
 	output, err := cmd.CombinedOutput()
 	if err == nil {
-		return string(output), true
+		return string(output), nil, true
 	}
 
-	return "", false
+	log.Printf("[%s] git exited with error %v \"%s\"", repository.GetShowName(), err, output)
+
+	return string(output), err, false
 }
 
 func (repository Repository) ExecGitInteractive(args ...string) (ok bool) {
@@ -113,24 +119,13 @@ func (repository Repository) ExecGitInteractive(args ...string) (ok bool) {
 
 // retrieveBasics retrieves the current branch, status.
 func (repository *Repository) RetrieveBasics() {
-	if branch, ok := repository.ExecGit("rev-parse", "--abbrev-ref", "HEAD"); ok {
+	if branch, _, ok := repository.ExecGit("rev-parse", "--abbrev-ref", "HEAD"); ok {
 		repository.currentBranch = strings.TrimRight(branch, "\r\n")
 	}
-	repository.status, _ = repository.ExecGit("status", "--porcelain")
+	repository.status, _, _ = repository.ExecGit("status", "--porcelain")
 
-}
+	repository.haveBasics = true
 
-// fetchRemote performs a fetch of a specific remote.
-func (repository *Repository) fetchRemote(remote string) {
-	_, _ = repository.ExecGit("fetch", remote)
-}
-
-// PathMatch returns true if path matches.
-func (repository *Repository) PathMatch(match string) bool {
-	if strings.Index(repository.path, match) >= 0 {
-		return true
-	}
-	return false
 }
 
 // NameContains returns true if name contains search.
@@ -159,9 +154,25 @@ func (repository *Repository) GetPath() string {
 	return repository.path
 }
 
+// GetPath returns repository absolute root directory.
+func (repository *Repository) GetAbsPath() string {
+	return path.Join(repository.gitRoot, repository.path)
+}
+
 // GetCurrentBranch returns the current branch.
 func (repository *Repository) GetCurrentBranch() string {
+	if !repository.haveBasics {
+		repository.RetrieveBasics()
+	}
 	return repository.currentBranch
+}
+
+// GetCurrentBranch returns the current branch.
+func (repository *Repository) GetStatus() string {
+	if !repository.haveBasics {
+		repository.RetrieveBasics()
+	}
+	return repository.status
 }
 
 // GetStatusJudgement judges the current status.
@@ -170,7 +181,7 @@ func (repository *Repository) GetStatusJudgement() string {
 	var staged bool
 	var unstaged bool
 	var untracked bool
-	lines := strings.Split(repository.status, "\n")
+	lines := strings.Split(repository.GetStatus(), "\n")
 	for _, line := range lines {
 		if len(line) >= 2 {
 			switch {

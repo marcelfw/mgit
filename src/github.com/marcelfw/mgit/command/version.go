@@ -25,7 +25,7 @@ func (cmd cmdVersion) Help() string {
 	return "Show current version."
 }
 
-func (cmd cmdVersion) Init(args []string, interactive bool) (outCmd repository.Command) {
+func (cmd cmdVersion) Init(args []string, interactive bool, dryrun bool) (outCmd repository.Command) {
 	return nil
 }
 

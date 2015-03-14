@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"bufio"
 	"io/ioutil"
 	"log"
 	"os"
@@ -18,6 +19,7 @@ import (
 type RepositoryFilter struct {
 	rootDirectory string
 	depth         int
+	catalog       string
 
 	filters []Filter
 }
@@ -29,13 +31,100 @@ func init() {
 }
 
 // create a new RepositoryFilter
-func NewRepositoryFilter(rootDirectory string, depth int, filters []Filter) (filter RepositoryFilter) {
+func NewRepositoryFilter(rootDirectory string, depth int, catalog string, filters []Filter) (filter RepositoryFilter) {
 	filter.rootDirectory = rootDirectory
 	filter.depth = depth
+	filter.catalog = catalog
 
 	filter.filters = filters
 
 	return filter
+}
+
+// analyse potential repository location.
+func analysePossibleRepository(vpath string, f os.FileInfo, rootDirectory string) (name string, gitPath string, err error) {
+	name = ""
+	base := path.Base(vpath)
+	gitPath = path.Dir(vpath)
+
+	if f.IsDir() {
+		return "", "", nil
+	}
+
+	if base != "HEAD" {
+		return "", "", nil
+	}
+	var configFileInfo os.FileInfo
+	if configFileInfo, err = os.Stat(path.Dir(vpath) + "/config"); err != nil {
+		return "", "", nil
+	}
+	if configFileInfo.Size() > 40960 {
+		// ignore configs too big
+		log.Printf("Ignoring repository with this huge configuration \"%s\" (%d bytes)", vpath, configFileInfo.Size())
+		return "", "", nil
+	}
+
+	var content []byte
+	if content, err = ioutil.ReadFile(path.Dir(vpath) + "/config"); err != nil {
+		log.Printf("Could not read configuration \"%s\" (error %s)", vpath, err)
+		return "", "", nil
+	}
+
+	// resolve submodule worktree
+	match := regexpWorktree.FindStringSubmatch(string(content))
+	if len(match) >= 2 {
+		// we assume the submodule has a .git file here
+		gitPath = path.Clean(gitPath + "/" + match[1] + "/.git")
+		if fi, err := os.Stat(gitPath); err != nil {
+			return "", "", nil
+		} else {
+			if fi.IsDir() {
+				return "", "", nil
+			}
+		}
+	}
+
+	// Name is Git-directory without rootDirectory.
+	if gitPath != ".git" {
+		name = strings.TrimPrefix(gitPath, rootDirectory)
+		name = strings.TrimLeft(name, "/")
+		name = strings.TrimSuffix(name, ".git")
+		name = strings.TrimSuffix(name, "/")
+	}
+
+	return
+}
+
+// filter repository location.
+func filterRepositoryLocation(name string, gitPath string, filter RepositoryFilter, no_of_repositories int) (repository Repository, foundRepository bool) {
+	if filter.depth > 0 && (strings.Count(name, "/")+1) > filter.depth {
+		// if depth limit is set, ignore directories too deep.
+		log.Printf("Skipping repository \"%s\" (filtered by depth)", name)
+		return Repository{}, false
+	}
+
+	repository, foundRepository = NewRepository(no_of_repositories, name, gitPath)
+
+	if foundRepository {
+		var allow = true
+		for _, filter := range filter.filters {
+			if filter.FilterRepository(repository) == false {
+				allow = false
+				if filterdef, ok := filter.(FilterDefinition); ok {
+					log.Printf("Skipping repository \"%s\" (filtered by %v)", name, filterdef.Name())
+				}
+				break
+			}
+		}
+
+		if allow {
+			log.Printf("Found repository \"%s\"", name)
+			no_of_repositories++
+			return repository, true
+		}
+	}
+
+	return Repository{}, false
 }
 
 // analysePath extracts repositories from regular file paths.
@@ -43,82 +132,40 @@ func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath
 	no_of_repositories := 0
 
 	return func(vpath string, f os.FileInfo, err error) error {
-		name := ""
-		base := path.Base(vpath)
-		gitPath := path.Dir(vpath)
+		name, gitPath, err := analysePossibleRepository(vpath, f, filter.rootDirectory)
 
-		if f.IsDir() {
-			return nil
-		}
-
-		if base != "HEAD" {
-			return nil
-		}
-		var configFileInfo os.FileInfo
-		if configFileInfo, err = os.Stat(path.Dir(vpath) + "/config"); err != nil {
-			return nil
-		}
-		if configFileInfo.Size() > 40960 {
-			// ignore configs too big
-			log.Printf("Ignoring repository with this huge configuration \"%s\" (%d bytes)", vpath, configFileInfo.Size())
-			return nil
-		}
-
-		var content []byte
-		if content, err = ioutil.ReadFile(path.Dir(vpath) + "/config"); err != nil {
-			log.Printf("Could not read configuration \"%s\" (error %s)", vpath, err)
-			return nil
-		}
-
-		// resolve submodule worktree
-		match := regexpWorktree.FindStringSubmatch(string(content))
-		if len(match) >= 2 {
-			// we assume the submodule has a .git file here
-			gitPath = path.Clean(gitPath + "/" + match[1] + "/.git")
-			if fi, err := os.Stat(gitPath); err != nil {
-				return nil
-			} else {
-				if fi.IsDir() {
-					return nil
-				}
-			}
-		}
-
-		// Name is Git-directory without rootDirectory.
-		if gitPath != ".git" {
-			name = strings.TrimPrefix(gitPath, filter.rootDirectory)
-			name = strings.TrimLeft(name, "/")
-			name = strings.TrimSuffix(name, ".git")
-		}
-
-		if filter.depth > 0 && (strings.Count(name, "/")+1) > filter.depth {
-			// if depth limit is set, ignore directories too deep.
-			log.Printf("Skipping repository \"%s\" (filtered by depth)", name)
-			return nil
-		}
-
-		repository, foundRepository := NewRepository(no_of_repositories, name, gitPath)
+		repository, foundRepository := filterRepositoryLocation(name, gitPath, filter, no_of_repositories)
 
 		if foundRepository {
-			var allow = true
-			for _, filter := range filter.filters {
-				if filter.FilterRepository(repository) == false {
-					allow = false
-					if filterdef, ok := filter.(FilterDefinition); ok {
-						log.Printf("Skipping repository \"%s\" (filtered by %v)", name, filterdef.Name())
-					}
-					break
-				}
-			}
+			no_of_repositories++
+			reposChannel <- repository
+		}
 
-			if allow {
-				log.Printf("Found repository \"%s\"", name)
+		return nil
+	}
+}
+
+// analyseCatalog
+func analyseCatalog(filter RepositoryFilter, file *os.File, reposChannel chan Repository) {
+	no_of_repositories := 0
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		// @todo fix this for bare repositories
+		filename := path.Join(filter.rootDirectory, scanner.Text(), ".git/HEAD")
+		if f, err := os.Stat(filename); err == nil {
+			name, gitPath, _ := analysePossibleRepository(filename, f, filter.rootDirectory)
+
+			repository, foundRepository := filterRepositoryLocation(name, gitPath, filter, no_of_repositories)
+
+			if foundRepository {
 				no_of_repositories++
 				reposChannel <- repository
 			}
 		}
-
-		return nil
+	}
+	if err := scanner.Err(); err != nil {
+		log.Fatalf("Problem reading catalog: %v", err)
 	}
 }
 
@@ -126,11 +173,26 @@ func analysePath(filter RepositoryFilter, reposChannel chan Repository) filepath
 func FindRepositories(filter RepositoryFilter, numDigesters int) chan Repository {
 	reposChannel := make(chan Repository, numDigesters)
 
-	go func() {
-		filepath.Walk(filter.rootDirectory, analysePath(filter, reposChannel))
+	if filter.catalog != "" {
+		filename := path.Join(filter.rootDirectory, filter.catalog)
+		if file, err := os.Open(filename); err == nil {
+			go func() {
+				defer file.Close()
 
-		close(reposChannel)
-	}()
+				analyseCatalog(filter, file, reposChannel)
+
+				close(reposChannel)
+			}()
+		} else {
+			log.Fatal("Cannot read catalog %s, error %v", filename, err)
+		}
+	} else {
+		go func() {
+			filepath.Walk(filter.rootDirectory, analysePath(filter, reposChannel))
+
+			close(reposChannel)
+		}()
+	}
 
 	return reposChannel
 }

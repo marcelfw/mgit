@@ -5,8 +5,9 @@
 package command
 
 import (
-	"github.com/marcelfw/mgit/repository"
 	"strings"
+
+	"github.com/marcelfw/mgit/repository"
 )
 
 type cmdEcho struct {
@@ -30,7 +31,7 @@ Parses the rest of the command-line and performs all macro conversion.
 Useful for testing macros.`
 }
 
-func (cmd cmdEcho) Init(args []string, interactive bool) (outCmd repository.Command) {
+func (cmd cmdEcho) Init(args []string, interactive bool, dryrun bool) (outCmd repository.Command) {
 	cmd.args = args
 	return cmd
 }

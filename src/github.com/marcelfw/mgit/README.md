@@ -13,13 +13,16 @@ Mass git is a tool to run commands on multiple repositories, collect their outpu
 Examples
 --------
 
+    # Get an overview of all customer code on your machine.
+    mgit -root ~/customer list
+
+    # Alternatively use the regular git status command.
+    mgit -root ~/customer status
+
     # Copy all your development branches to your laptop.
     mgit -branch develop -remote laptop push laptop
 
-    # Refresh all customer code on your machine.
-    mgit -root ~/customer pull
-
-    # Refresh all your github clones.
+    # Refresh your github clones.
     mgit -remotepath github.com/username pull
 
     # Mirror all repositories to your NAS.
@@ -31,21 +34,21 @@ Examples
     mgit -remote mynas push
 
     # Go to any repository directory, in this case project "mgit"
-    # see Tips 'n tricks
+    # (see Tips 'n tricks)
     mcd mgit
 
 
 Getting started
 ---------------
 
-There is no binary release yet.
+There is no binary release yet. See next section.
 
 
-Building from source
---------------------
+Installing from source
+----------------------
 
 1. Install Go, see Go [documentation](http://golang.org/doc/install)
-3. go install github.com/marcelfw/mgit
+3. go get github.com/marcelfw/mgit
 4. Optionally copy bin/mgit to /usr/local/bin directory.
 
 
@@ -58,13 +61,13 @@ Add a shortcut called "global" into your system or user-global configuration. Se
 root of all repositories.
 Source the following snippet in your shell profile:
 
-source <mgit-directory>/profile-mgit.sh
+source &lt;mgit-directory&gt;/profile-mgit.sh
 
 Source your profile to load the changes immediately.
 Now you can use "mcd" in two ways:
 
-1. mcd <name>        go to the repository which matches this <name>
-2. mcd .             go to the local mgit root
+1. Use `mcd <name>` to go to the repository which matches this <name>
+2. Or `mcd .` to go to the local mgit root
 
 ### Quickly view projects' git status
 
@@ -79,4 +82,4 @@ Now you can run "mgit status" or "mgit list" anywhere in your project directory 
 License
 -------
 
-Code is under the [The MIT License (MIT)](https://github.com/marcelfw/mgit/tree/master/src/github.com/marcelfw/mgit/LICENSE.txt).
+Code is under the [The MIT License (MIT)](https://github.com/marcelfw/mgit/blob/master/LICENSE.txt).

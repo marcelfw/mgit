@@ -5,17 +5,19 @@
 package command
 
 import (
-	"github.com/marcelfw/mgit/engine"
-	"github.com/marcelfw/mgit/repository"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/marcelfw/mgit/engine"
+	"github.com/marcelfw/mgit/repository"
 )
 
 type cmdExec struct {
 	args []string
 
 	interactive bool
+	dryrun      bool
 }
 
 func NewExecCommand() cmdExec {
@@ -34,9 +36,10 @@ func (cmd cmdExec) Help() string {
 Performs macro conversion and runs the command(s).`
 }
 
-func (cmd cmdExec) Init(args []string, interactive bool) (outCmd repository.Command) {
+func (cmd cmdExec) Init(args []string, interactive bool, dryrun bool) (outCmd repository.Command) {
 	cmd.args = args
 	cmd.interactive = interactive
+	cmd.dryrun = dryrun
 	return cmd
 }
 
@@ -50,6 +53,11 @@ func (cmd cmdExec) Run(repository repository.Repository) (outRepository reposito
 	extCmd.Dir = repository.GetPath()
 
 	repository.PutInfo("exec", "")
+
+	if cmd.dryrun {
+		repository.PutInfo("exec", "cd "+repository.GetAbsPath()+"\n"+strings.Join(args, " "))
+		return repository, true
+	}
 
 	if cmd.interactive {
 		extCmd.Stdin = os.Stdin
@@ -77,6 +85,10 @@ func (cmd cmdExec) Run(repository repository.Repository) (outRepository reposito
 }
 
 func (cmd cmdExec) Header() []string {
+	if cmd.dryrun {
+		return nil
+	}
+
 	columns := make([]string, 2, 2)
 
 	columns[0] = "Repository"
@@ -86,5 +98,9 @@ func (cmd cmdExec) Header() []string {
 }
 
 func (cmd cmdExec) Output(repository repository.Repository) interface{} {
+	if cmd.dryrun {
+		return repository.GetInfo("exec").(string)
+	}
+
 	return engine.FormatRow(repository.GetShowName(), repository.GetInfo("exec").(string))
 }

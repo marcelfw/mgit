@@ -6,19 +6,23 @@ package filter
 
 import (
 	"flag"
-	"github.com/marcelfw/mgit/repository"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
+
+	"github.com/marcelfw/mgit/repository"
 )
 
 type filterBranch struct {
 	name string
 
+	current  *string
 	branch   *string
 	nobranch *string
 }
 
+// NewBranchFilter returns a new filterBranch filter.
 func NewBranchFilter() filterBranch {
 	filter := filterBranch{name: "branch"}
 
@@ -31,12 +35,14 @@ func (filter filterBranch) Name() string {
 
 func (filter filterBranch) Usage() map[string]string {
 	return map[string]string{
-		"-branch":   "Match when branch is found.",
-		"-nobranch": "Match only when branch is not found.",
+		"-current <branch>":  "Match when <branch> is current.",
+		"-branch <branch>":   "Match when <branch> is found.",
+		"-nobranch <branch>": "Match only when <branch> is not found.",
 	}
 }
 
 func (filter filterBranch) AddFlags(flags *flag.FlagSet) repository.Filter {
+	filter.current = flags.String("current", "", "select only when current matches")
 	filter.branch = flags.String("branch", "", "select only with this branch")
 	filter.nobranch = flags.String("nobranch", "", "select only without this branch")
 
@@ -67,6 +73,14 @@ func getBranches(repository repository.Repository) (branches map[string]bool) {
 
 func (filter filterBranch) FilterRepository(repos repository.Repository) bool {
 	branches := getBranches(repos)
+
+	if *filter.current != "" {
+		if branch, _, ok := repos.ExecGit("rev-parse", "--abbrev-ref", "HEAD"); ok {
+			if *filter.current != strings.TrimRight(branch, "\r\n") {
+				return false
+			}
+		}
+	}
 
 	if *filter.branch != "" {
 		if *filter.branch == "master" {

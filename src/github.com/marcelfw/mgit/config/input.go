@@ -7,9 +7,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"github.com/marcelfw/mgit/command"
-	"github.com/marcelfw/mgit/repository"
-	go_ini "github.com/vaughan0/go-ini"
 	"io/ioutil"
 	"log"
 	"os"
@@ -17,6 +14,10 @@ import (
 	"path"
 	"regexp"
 	"strconv"
+
+	"github.com/marcelfw/mgit/command"
+	"github.com/marcelfw/mgit/repository"
+	go_ini "github.com/vaughan0/go-ini"
 )
 
 type configFile struct {
@@ -139,12 +140,14 @@ func readLocalConfiguration() (map[string]string, bool) {
 }
 
 // ParseCommandline parses and validates the command-line and return useful structs to continue.
-func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition) (command string, cmdInteractive bool, args []string, repositoryFilter repository.RepositoryFilter, ok bool) {
+func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition) (command string, cmdInteractive bool, cmdDryRun bool, args []string, repositoryFilter repository.RepositoryFilter, ok bool) {
 	var rootDirectory string
 	var depth int
+	var catalog string
 	var shortcut string
 	var interactive bool
 	var debug bool
+	var dryrun bool
 
 	mgitFlags := flag.NewFlagSet("mgitFlags", flag.ContinueOnError)
 
@@ -152,8 +155,10 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	mgitFlags.StringVar(&shortcut, "s", "", "read settings with name from configuration file")
 	mgitFlags.StringVar(&rootDirectory, "root", "", "set root directory")
 	mgitFlags.IntVar(&depth, "depth", 0, "maximum depth to search in")
+	mgitFlags.StringVar(&catalog, "catalog", "", "file with repository directories")
 	mgitFlags.BoolVar(&interactive, "i", false, "run command interactively")
 	mgitFlags.BoolVar(&debug, "debug", false, "show debug log")
+	mgitFlags.BoolVar(&dryrun, "n", false, "perform a dry run (if applicable)")
 
 	filters := make([]repository.Filter, 0, len(filterDefs))
 	for _, filterDef := range filterDefs {
@@ -172,7 +177,7 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 		filterMap, ok = readShortcutFromConfiguration(shortcut)
 		if !ok {
 			fmt.Printf("Shortcut \"%s\" not found.\n", shortcut)
-			return command, false, args, repositoryFilter, false
+			return command, false, false, args, repositoryFilter, false
 		}
 	} else {
 		filterMap, ok = readLocalConfiguration()
@@ -183,7 +188,7 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 
 	if mgitFlags.NArg() == 0 {
 		fmt.Print("Could not find command to execute.\n")
-		return command, false, args, repositoryFilter, false
+		return command, false, false, args, repositoryFilter, false
 	}
 
 	mgitFlags.VisitAll(func(flag *flag.Flag) {
@@ -216,16 +221,19 @@ func ParseCommandline(osArgs []string, filterDefs []repository.FilterDefinition)
 	if interactive {
 		cmdInteractive = true
 	}
+	if dryrun {
+		cmdDryRun = true
+	}
 
 	log.Printf("Using root directory and depth \"%s\", \"%d\"", rootDirectory, depth)
 
-	repositoryFilter = repository.NewRepositoryFilter(rootDirectory, depth, filters)
+	repositoryFilter = repository.NewRepositoryFilter(rootDirectory, depth, catalog, filters)
 
 	args = mgitFlags.Args()
 	command = args[0]
 	args = args[1:]
 
-	return command, cmdInteractive, args, repositoryFilter, true
+	return command, cmdInteractive, cmdDryRun, args, repositoryFilter, true
 }
 
 // createCommand creates a command based on a configuration section.

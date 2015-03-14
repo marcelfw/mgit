@@ -1,15 +1,16 @@
-// Copyright (c) 2014 Marcel Wouters
+// Copyright (c) 2014-2015 Marcel Wouters
 
 // Package config implements configuration and start-up.
 // This source configures mgit.
 package config
 
 import (
+	"sort"
+
 	"github.com/marcelfw/mgit/command"
 	"github.com/marcelfw/mgit/engine"
 	"github.com/marcelfw/mgit/filter"
 	"github.com/marcelfw/mgit/repository"
-	"sort"
 )
 
 // git commands non-interactive we automatically pass-through
@@ -22,10 +23,13 @@ func Usage(filters []repository.FilterDefinition, commands map[string]repository
 `
 
 	filTable := make([][]string, 0, len(filters)*2+5)
-	filTable = append(filTable, []string{"  -s", "Read shortcut for filters."})
-	filTable = append(filTable, []string{"  -root", "Root directory to search from."})
+	filTable = append(filTable, []string{"  -s <shortcut>", "Read shortcut for filters."})
+	filTable = append(filTable, []string{"  -root <directory>", "Root directory to search from."})
+	filTable = append(filTable, []string{"  -depth <depth>", "Maximum depth to search in."})
+	filTable = append(filTable, []string{"  -catalog <file>", "File containing repository directories."})
 	filTable = append(filTable, []string{"  -debug", "Show debug output."})
 	filTable = append(filTable, []string{"  -i", "Assume command is interactive."})
+	filTable = append(filTable, []string{"  -n", "Dry-run external command."})
 	for _, filter := range filters {
 		for flag, help := range filter.Usage() {
 			filTable = append(filTable, []string{"  " + flag, help})
